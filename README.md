@@ -83,9 +83,11 @@ Optionnel ;
 
 ## Organisation 
 
-- Analyse de données et mis au point sur rstudio classique
+- retroplanning avant deadline 
 
 - Déploiment d'une appli shiny (allé voir shinyapp.io)
+
+![retroplanning](retroplanning_BibliographR.jpg)
 
 ## Deadline
 
