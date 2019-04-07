@@ -1,0 +1,79 @@
+---
+title: "Prise en main"
+author: "Delmotte jean"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: "hide"
+    theme: united
+    highlight: tango
+    number_sections: true
+    fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Fonction to install / load package if it's not here
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg)) 
+    install.packages(new.pkg, dependencies = TRUE)
+  sapply(pkg, require, character.only = TRUE)
+}
+
+# usage
+packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape")
+ipak(packages)
+```
+
+```{r}
+entrez_dbs() # information about al database
+
+entrez_db_summary("pubmed")
+
+search_fields <- entrez_db_searchable("pmc")
+search_fields$GRNT
+
+hox_paper <- entrez_search(db="pubmed", term="10.1038/nature08789[doi]")
+hox_paper$file
+
+
+papers_by_year <- function(years, search_term){
+    return(sapply(years, function(y) entrez_search(db="pubmed",term=search_term, mindate=y, maxdate=y, retmax=0)$count))
+}
+
+years <- 1990:2015
+total_papers <- papers_by_year(years, "")
+omics <- c("genomic", "epigenomic", "metagenomic", "proteomic", "transcriptomic", "pharmacogenomic", "connectomic" )
+trend_data <- sapply(omics, function(t) papers_by_year(years, t))
+trend_props <- trend_data/total_papers
+
+
+trend_df <- melt(data.frame(years, trend_props), id.vars="years")
+p <- ggplot(trend_df, aes(years, value, colour=variable))+
+  geom_line(size=1) + scale_y_log10("number of papers")
+```
+
+
+```{r}
+virus_oysters <- entrez_search(db="pubmed", term="herpesvirus AND oyster")
+summary(virus_oysters)
+lsf.str("package:rentrez")
+
+# Vérifier les str rentrer avec un dico ?
+# utiliser les paste0 pour fomuler les queries 
+
+years <- 1960:2015
+#total_papers <- papers_by_year(years, "")
+recherche_an <- c("disease AND oyster", "herpesvirus AND oyster", "bacterie AND oyster" )
+trend_data <- sapply(recherche_an, function(t) papers_by_year(years, t))
+#trend_props <- trend_data/total_papers
+#trend_df <- melt(data.frame(years, trend_props), id.vars="years")
+evolution_biblio <- melt(data.frame(years, trend_data), id.vars="years")
+colnames(evolution_biblio) <- c("years", "query", "papers")
+p <- ggplot(evolution_biblio, aes(years, papers, colour=query))+
+  geom_line(size=1)
+
+```
+
