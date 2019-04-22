@@ -23,9 +23,13 @@ ipak <- function(pkg){
 }
 
 # usage
-packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape")
+packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl")
 ipak(packages)
 ```
+
+ressources : http://perso.ens-lyon.fr/lise.vaudor/tuto-texte/
+
+# Récolte des infos avec le package entrez
 
 ```{r}
 entrez_dbs() # information about al database
@@ -77,3 +81,120 @@ p <- ggplot(evolution_biblio, aes(years, papers, colour=query))+
 
 ```
 
+# Récolte des infos en scrappant avec le package rvest
+
+Dans un premier temps je vais tenter de récupérer le titre d'un article sur la page principal :
+
+![output_to_parse_1](~/Documents/BibliographeR/results/images/first_tittle_to_parse.png)
+**Image 1**. Capture d'écran du 1er article de la page. 
+
+Ensuite j'ai copié collé les 3 Xpath des 3 premier titres pour voir où ça changé :
+
+```html
+/html/body/div[2]/div[1]/form/div[1]/div[5]/div/div[5]/div[1]/div[2]/p/a
+/html/body/div[2]/div[1]/form/div[1]/div[5]/div/div[5]/div[2]/div[2]/p/a
+/html/body/div[2]/div[1]/form/div[1]/div[5]/div/div[5]/div[3]/div[2]/p/a
+```
+
+L'avant dernier `div[]` est ce qui varie entre les 3 titres
+
+```{r}
+ncbi <- read_html(
+  "https://www.ncbi.nlm.nih.gov/pubmed/?term=herpesvirus+oyster",
+  encoding="UTF-8"
+)
+
+# titre
+ncbi %>%
+  html_nodes("div.rslt p.title") %>%
+  html_text()
+
+# Auteur
+ncbi %>%
+  html_nodes("div.rslt p.desc") %>%
+  html_text()
+
+test
+View(test)
+ncbi %>%
+  html_nodes("div.rslt p.details") %>%
+  html_attr("attr.title")
+
+test<- ncbi %>%
+  html_nodes("div.rslt p.details")
+
+xml_attrs(xml_child(test, 1))[["title"]]  
+
+html
+ordinalpos=3&ncbi_uid=30310074&link_uid=30310074&linksrc=docsum_title
+```
+
+
+```{r}
+# scraping data directly on NCBI
+marketwatch_wbpg <- read_html(
+  "https://www.marketwatch.com/story/bitcoin-jumps-after-credit-scare-2018-10-15"
+)
+
+marketwatch_wbpg %>%
+  html_node("title") %>%
+  html_text()
+
+# body
+marketwatch_wbpg %>%
+  html_node("div.searchresult a") %>% # grab paragraphe
+  html_text()
+
+# Let's read in all news on Bitcoin using the
+# Marketwatch source
+marketwatch_bitcoin_articles <- read_html(
+  "https://www.marketwatch.com/search?q=bitcoin&m=Keyword&rpp=15&mp=0&bd=false&rs=false"
+)
+
+
+# Grab all URLs on the page
+urls <- marketwatch_bitcoin_articles %>%
+  html_nodes("div.searchresult a") %>% #See HTML source code for data within this tag
+  html_attr("href")
+
+urls
+
+# Grab all datetimes on the page
+datetime <- marketwatch_bitcoin_articles %>%
+  html_nodes("div.deemphasized span") %>% #See HTML source code for data within this tag
+  html_text()
+
+datetime
+```
+
+```{r}
+
+
+
+doc <- htmlParse(ncbi, asText = T)
+plain.text <- xpathSApply(doc, "//p", xmlValue)
+cat(paste(plain.text, collapse = "\n"))
+
+View(ncbi)
+
+
+/html/body/div[2]/div[1]/form/div[1]/div[5]/div/div[5]/div[3]/div[2]/p/a
+
+# body
+# Grab all DOI on the page
+
+
+ncbi %>%
+  html_nodes("div.rslt a") %>% #See HTML source code for data within this tag
+  .[7]
+doi
+
+ncbi %>%
+  html_nodes("maincontent")# %>% #See HTML source code for data within this tag
+  html_name()
+
+```
+
+Remarque les requetes se feront sur la page, il faut donc procéder page par page avec une boucle qui fera des itérations jusqu'à que le nombre de page max soit atteint. Pour ça on fait avec le nombre d'élément dans la page. Il faudra gérer le cas ou lorsque on a à la dernière page un nombre égale au max d'élement dans la page.
+
+![problem pages](~/Documents/BibliographeR/results/images/gestion_pages.png)
