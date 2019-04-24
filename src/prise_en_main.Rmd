@@ -114,16 +114,32 @@ ncbi %>%
   html_nodes("div.rslt p.desc") %>%
   html_text()
 
-test
-View(test)
+# Revue
 ncbi %>%
   html_nodes("div.rslt p.details") %>%
-  html_attr("attr.title")
+  xml_child("span") %>%
+  xml_attr("title")
 
-test<- ncbi %>%
-  html_nodes("div.rslt p.details")
+# DOIs
+ncbi %>%
+  html_nodes("div.supp p.details") %>%
+  html_text()
 
-xml_attrs(xml_child(test, 1))[["title"]]  
+# pb pour la récup des DOI, autre possibilité, récup le "/pubmed/30828244" et refaire une requet de l'URL
+#10.3389/fmicb.2019.00473.
+#https://doi.org/10.3389/fmicb.2019.00473
+
+#il faudra rajouté "#https://doi.org/" et enlever le point
+
+ncbi %>%
+  html_nodes("div.supp p.details")
+
+ncbi %>%
+  html_nodes("div.rslt p.details") %>%
+  xml_attrs() %>%
+  xml_child()
+
+xml_attrs(xml_child(test, "xmlns:mml"))[["title"]]  
 
 html
 ordinalpos=3&ncbi_uid=30310074&link_uid=30310074&linksrc=docsum_title
