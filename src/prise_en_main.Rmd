@@ -24,6 +24,10 @@ ipak <- function(pkg){
 
 # usage
 packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl")
+packages <- c(packages, "wdman", "RSelenium", "seleniumPipes")
+# wdman for managing the Selenium server d/l
+# RSelenium for getting a connection to the Selenium server
+# seleniumPipes for better navigation & scraping idioms
 ipak(packages)
 ```
 
@@ -130,87 +134,66 @@ ncbi %>%
 #https://doi.org/10.3389/fmicb.2019.00473
 
 #il faudra rajouté "#https://doi.org/" et enlever le point
-
-ncbi %>%
-  html_nodes("div.supp p.details")
-
-ncbi %>%
-  html_nodes("div.rslt p.details") %>%
-  xml_attrs() %>%
-  xml_child()
-
-xml_attrs(xml_child(test, "xmlns:mml"))[["title"]]  
-
-html
-ordinalpos=3&ncbi_uid=30310074&link_uid=30310074&linksrc=docsum_title
-```
-
-
-```{r}
-# scraping data directly on NCBI
-marketwatch_wbpg <- read_html(
-  "https://www.marketwatch.com/story/bitcoin-jumps-after-credit-scare-2018-10-15"
-)
-
-marketwatch_wbpg %>%
-  html_node("title") %>%
-  html_text()
-
-# body
-marketwatch_wbpg %>%
-  html_node("div.searchresult a") %>% # grab paragraphe
-  html_text()
-
-# Let's read in all news on Bitcoin using the
-# Marketwatch source
-marketwatch_bitcoin_articles <- read_html(
-  "https://www.marketwatch.com/search?q=bitcoin&m=Keyword&rpp=15&mp=0&bd=false&rs=false"
-)
-
-
-# Grab all URLs on the page
-urls <- marketwatch_bitcoin_articles %>%
-  html_nodes("div.searchresult a") %>% #See HTML source code for data within this tag
-  html_attr("href")
-
-urls
-
-# Grab all datetimes on the page
-datetime <- marketwatch_bitcoin_articles %>%
-  html_nodes("div.deemphasized span") %>% #See HTML source code for data within this tag
-  html_text()
-
-datetime
-```
-
-```{r}
-
-
-
-doc <- htmlParse(ncbi, asText = T)
-plain.text <- xpathSApply(doc, "//p", xmlValue)
-cat(paste(plain.text, collapse = "\n"))
-
-View(ncbi)
-
-
-/html/body/div[2]/div[1]/form/div[1]/div[5]/div/div[5]/div[3]/div[2]/p/a
-
-# body
-# Grab all DOI on the page
-
-
-ncbi %>%
-  html_nodes("div.rslt a") %>% #See HTML source code for data within this tag
-  .[7]
-doi
-
-ncbi %>%
-  html_nodes("maincontent")# %>% #See HTML source code for data within this tag
-  html_name()
-
 ```
 
 Remarque les requetes se feront sur la page, il faut donc procéder page par page avec une boucle qui fera des itérations jusqu'à que le nombre de page max soit atteint. Pour ça on fait avec le nombre d'élément dans la page. Il faudra gérer le cas ou lorsque on a à la dernière page un nombre égale au max d'élement dans la page.
 
 ![problem pages](~/Documents/BibliographeR/results/images/gestion_pages.png)
+
+possible solution https://www.allinonescript.com/questions/52694072/scape-data-from-a-page-that-uses-jsf-search-using-r
+
+```{r}
+# Exemple
+selServ <- selenium() #This should install the jar and start the server
+selServ$log()$stderr #We need the port # so do this and look for the port in the msgs
+sel <- remoteDr(browserName = "firefox", port = 4567) # Now we need to connect to it and we need to use the port # from ^^. It was 4567 in my case
+
+# Now, go to the main URL
+sel %>% 
+  go("https://jurispub.admin.ch/publiws/pub/search.jsf")
+
+# Start the scraping process by hitting the initial submit button
+sel %>% 
+  findElement("name", "form:searchSubmitButton") %>%  # find the submit button 
+  elementClick() # click it
+
+<input class="iceCmdBtn" id="form:searchSubmitButton" name="form:searchSubmitButton" onblur="setFocus('');" onclick="iceSubmitPartial(form, this, event);return false;" onfocus="setFocus(this.id);" type="submit" value="suchen">
+
+<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+
+  
+<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+  
+sel %>% 
+  getPageSource() %>% # like read_html()
+  html_node("table.iceDatTbl") -> dtbl  # this is the data table
+```
+
+
+```{r}
+selServ <- selenium() #This should install the jar and start the server
+selServ$log()$stderr #We need the port # so do this and look for the port in the msgs
+sel <- remoteDr(browserName = "firefox", port = 4567) # Now we need to connect to it and we need to use the port # from ^^. It was 4567 in my case
+
+# Now, go to the main URL
+sel %>% 
+  go("https://www.ncbi.nlm.nih.gov/pubmed/?term=herpesvirus+oyster")
+
+
+<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+
+  
+<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+
+id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page"
+  
+# Start the scraping process by hitting the initial submit button
+EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page
+sel %>% 
+  findElement(using = "id", "EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page") %>%  # find the submit button 
+  elementClick() # click it
+
+sel %>% 
+  getPageSource() %>% # like read_html()
+  html_node("table.iceDatTbl") -> dtbl  # this is the data table
+```
