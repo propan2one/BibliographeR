@@ -69,10 +69,53 @@ Optionnel ;
 ### 5) Critère d'évaluations d'un article
 
 - Impact factor
+    "À ce jour, le Journal Citation Reports (JCR), développée par Clarivate Analytics (anciennement Thomson Reuters), est la seule ressource permettant de trouver le facteur d'impact de plus de 8 000 revues scientifiques. Les revues scientifiques répertoriées dans JCR sont celles indexées par Web of Science." 
+    Sauf que c'est pas en free access ! 
+- SNIP - "Source normalized impact per paper" 
+- SCIMAGO journal and country rank (https://www.scimagojr.com/index.php)  Alors ça ça à l'air trop cool !!! Par contre leur appli (https://www.scimagojr.com/shapeofscience/) rame à mort (ou alors c'est mon PC, à vérifier)
+    - on a accès très facilement à la notation de 31
+- Eigenfactor 
 
-- Citations
+Lien intéressant avec qqs indices, en francais : 
+(https://guides.biblio.polymtl.ca/mise_en_valeur_de_la_recherche/impact_revues)
 
-- Les retweets !!
+Lien qu'à l'air encore mieux avec plein d'indices et en anglais cette fois : 
+
+Measuring Your Impact: Impact Factor, Citation Analysis, and other Metrics: Journal Impact Factor (IF)
+Overview of h-index, Eigenfactor, Impact Factor (IF), Journal Citation Reports, Citation Analysis, and other tools.
+(https://researchguides.uic.edu/if/impact)
+
+- Citation analysis:
+
+Citation analysis can be used to determine the citation impact of authors, articles, and journals. 
+
+- h-index/ g-index
+
+Beyond basic citation counts, there are measures such as the h-index and the g-index which are used to quantify the impact of an individual author.
+
+- Use/download data:
+
+This method relies on usage data such as the number of downloads for an article to help determine impact.  
+
+- Journal impact factor:
+
+To rank journals within a discipline or a sub-discipline, or to determine the average citation count for a journal use Journal Citation Reports ( from Thomson Reuters) or SCImago (from Elsevier).
+
+- Scientometrics 2.0/ Altmetrics:
+
+There is a growing movement examining the measurement of scholarly impact drawn from Web 2.0 data.   (Priem and Hemminger, 2010).
+Subject Guide
+Sandy DeGroote's picture
+Sandy DeGroote
+Email Me
+Contact:
+Professor & Scholarly Communications Librarian
+312-413-9494
+Subjects:
+Copyright & Scholarly Publishing
+
+
+- Les retweets !! (je pense pas que pour un scientific paper ce soit vraiment pertinent)
 
 - On peut essayer de catégoriser comment les plots ont été généré (graphprisme / STAT/ matplotlib / R, [les utilisateur de R on évidemment un score plus haut xD]
 
