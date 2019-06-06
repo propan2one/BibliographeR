@@ -80,6 +80,11 @@ Optionnel ;
 
 - On pourra voir quels sont les liens entre les plots : une line plot va t'il être suivie par un heatmap ? (on tente une chaine de makrov ?)
     - On peut aussi catégoriser la suite de plot/analyse pour un type d'expérience donnée (exemple pour une Transcriptomic analysis : line plot (abondance de transcrit) suivie de heatmap suivie de d'analyse GOterm)
+    
+- Quelques liens sur l'évaluation de la qualité d'un article scientifique : 
+    - https://www.researchgate.net/post/What_are_the_standards_for_quality_scientific_research
+    - https://www.researchgate.net/post/What_are_the_criteria_to_define_the_quality_of_a_publication_on_parasitology
+    - https://www.guidelines.kaowarsom.be/annex_dimension_scientific_quality
 
 ## Organisation 
 
