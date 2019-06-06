@@ -93,6 +93,8 @@ Optionnel ;
 
 - Abstract selection - April 15, 2019
 
+- Slides must be sent to slides@user2019.fr no later than June, 21.
+
 - useR! 2019 Toulouse - France July 9-12, 2019
 
 ## Bibliographie
