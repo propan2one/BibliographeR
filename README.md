@@ -132,8 +132,16 @@ Copyright & Scholarly Publishing
 
 
 ### 6) data 
+
+Tableau 1 : sortie CSV NCBI ou fichier BIB
+
+Tableau 2 : Institutions avec des cohordonnées pour la map : https://zenodo.org/record/2465689
+
+Tableau 3 : Les différentes indices par revues https://www.scimagojr.com/journalrank.php?out=xls
+
+Tableau 4 : Bdd avec les https://zenodo.org/record/2754830
+
 - sjr inice h pour chaque revue :
-https://www.scimagojr.com/journalrank.php?out=xls
 
 
 ## Organisation 
