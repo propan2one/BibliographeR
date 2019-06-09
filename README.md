@@ -130,6 +130,12 @@ Copyright & Scholarly Publishing
     - https://www.researchgate.net/post/What_are_the_criteria_to_define_the_quality_of_a_publication_on_parasitology
     - https://www.guidelines.kaowarsom.be/annex_dimension_scientific_quality
 
+
+### 6) data 
+- sjr inice h pour chaque revue :
+https://www.scimagojr.com/journalrank.php?out=xls
+
+
 ## Organisation 
 
 - retroplanning avant deadline 
