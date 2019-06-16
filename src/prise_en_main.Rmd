@@ -24,7 +24,7 @@ ipak <- function(pkg){
 
 # usage
 packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl")
-packages <- c(packages, "wdman", "RSelenium", "seleniumPipes")
+#packages <- c(packages, "wdman", "RSelenium", "seleniumPipes")
 # wdman for managing the Selenium server d/l
 # RSelenium for getting a connection to the Selenium server
 # seleniumPipes for better navigation & scraping idioms
@@ -72,9 +72,9 @@ lsf.str("package:rentrez")
 # Vérifier les str rentrer avec un dico ?
 # utiliser les paste0 pour fomuler les queries 
 
-years <- 1960:2015
+years <- 1960:2019
 #total_papers <- papers_by_year(years, "")
-recherche_an <- c("disease AND oyster", "herpesvirus AND oyster", "bacterie AND oyster" )
+recherche_an <- c("disease AND oyster", "herpesvirus AND oyster", "bacteria AND oyster" )
 trend_data <- sapply(recherche_an, function(t) papers_by_year(years, t))
 #trend_props <- trend_data/total_papers
 #trend_df <- melt(data.frame(years, trend_props), id.vars="years")
@@ -108,6 +108,12 @@ ncbi <- read_html(
   encoding="UTF-8"
 )
 
+mode(ncbi)
+ncbi <- read_html(
+  "https://www.ncbi.nlm.nih.gov/pubmed/?term=herpesvirus+oyster",
+  encoding="UTF-8"
+)
+
 # titre
 ncbi %>%
   html_nodes("div.rslt p.title") %>%
@@ -134,8 +140,8 @@ ncbi %>%
 #https://doi.org/10.3389/fmicb.2019.00473
 
 #il faudra rajouté "#https://doi.org/" et enlever le point
-```
 
+```
 Remarque les requetes se feront sur la page, il faut donc procéder page par page avec une boucle qui fera des itérations jusqu'à que le nombre de page max soit atteint. Pour ça on fait avec le nombre d'élément dans la page. Il faudra gérer le cas ou lorsque on a à la dernière page un nombre égale au max d'élement dans la page.
 
 ![problem pages](~/Documents/BibliographeR/results/images/gestion_pages.png)
@@ -179,8 +185,8 @@ sel <- remoteDr(browserName = "firefox", port = 4567) # Now we need to connect t
 sel %>% 
   go("https://www.ncbi.nlm.nih.gov/pubmed/?term=herpesvirus+oyster")
 
-
 <a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+
 
   
 <a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
@@ -197,3 +203,20 @@ sel %>%
   getPageSource() %>% # like read_html()
   html_node("table.iceDatTbl") -> dtbl  # this is the data table
 ```
+
+
+```{r}
+#https://stringr.tidyverse.org/articles/regular-expressions.html
+BasePath <- "/home/jean/Documents/BibliographeR/"
+dataset1 <- read.csv(paste0(BasePath,"raw/oyster_herpesvirus_pubmed_result.csv"), header = F,  dec = ".", sep = ",", stringsAsFactors=F)
+dataset1 <- dataset1[,-ncol(dataset1)]
+colnames(dataset1) <- dataset1[1,]
+dataset1 <- dataset1[-1,]
+# Partie DOI
+dataset1$DOI <- gsub(".$","", str_match(dataset1$Details, "doi: (.*?) ")[,2] )
+dataset1$DOI <- paste0("https://doi.org/",dataset1$DOI)
+dataset1[which(dataset1$DOI == "https://doi.org/NA"),]$DOI <- NA
+write.table(dataset1, file = paste0(BasePath,"raw/oyster_herpesvirus_pubmed_result_DOI.csv"), sep = ";", quote=FALSE, row.names = FALSE)
+# 
+```
+
