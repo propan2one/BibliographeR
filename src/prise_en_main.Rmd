@@ -23,7 +23,7 @@ ipak <- function(pkg){
 }
 
 # usage
-packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl")
+packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl", "easyPubMed")
 #packages <- c(packages, "wdman", "RSelenium", "seleniumPipes")
 # wdman for managing the Selenium server d/l
 # RSelenium for getting a connection to the Selenium server
@@ -40,7 +40,7 @@ entrez_dbs() # information about al database
 
 entrez_db_summary("pubmed")
 
-search_fields <- entrez_db_searchable("pmc")
+search_fields <- entrez_db_searchable("pubmed")
 search_fields$GRNT
 
 hox_paper <- entrez_search(db="pubmed", term="10.1038/nature08789[doi]")
@@ -68,6 +68,8 @@ p <- ggplot(trend_df, aes(years, value, colour=variable))+
 virus_oysters <- entrez_search(db="pubmed", term="herpesvirus AND oyster")
 summary(virus_oysters)
 lsf.str("package:rentrez")
+
+virus_oysters$file
 
 # Vérifier les str rentrer avec un dico ?
 # utiliser les paste0 pour fomuler les queries 
@@ -213,10 +215,32 @@ dataset1 <- dataset1[,-ncol(dataset1)]
 colnames(dataset1) <- dataset1[1,]
 dataset1 <- dataset1[-1,]
 # Partie DOI
+dataset1$Details[1]
 dataset1$DOI <- gsub(".$","", str_match(dataset1$Details, "doi: (.*?) ")[,2] )
+
+TMP_vec <- dataset1 %>%
+  mutate(col_test = str_extract_all(Details, "doi: .+$")) 
+
+doi_qui_interest <- c()
+for (i in str_split(TMP_vec, " ") ) {
+  doi_qui_interest <- append(doi_qui_interest, i[2])
+}
+
+dataset1 <- dataset1 %>%
+  mutate(DOI=doi_qui_interest)
+
+dataset1$Details[4]
+dataset1$Details[1]
+  
 dataset1$DOI <- paste0("https://doi.org/",dataset1$DOI)
 dataset1[which(dataset1$DOI == "https://doi.org/NA"),]$DOI <- NA
 write.table(dataset1, file = paste0(BasePath,"raw/oyster_herpesvirus_pubmed_result_DOI.csv"), sep = ";", quote=FALSE, row.names = FALSE)
 # 
+```
+
+```{r}
+# Query pubmed and fetch many results
+my_query <- 'Damiano Fantini[AU] AND '
+my_query <- get_pubmed_ids(my_query)
 ```
 
