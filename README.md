@@ -58,6 +58,8 @@ Optionnel ;
 
     - Parler à des scientifiques de différents domaines pour essayé avoir le type de d'analyse pour une expérience donnée
 
+- Feature : Mettre dans la shiny app la possibilité de fournir le .bib de la biblio et de faire l'analyse de la bilbio
+
 ### 4) Travailler sur des techniques d'image recognition pour classifer les plots
 
 - Déterminer la base de données d'images, c'est à dire sur quelles plots on va utiliser (tradeoff plot utile vs image dispo), on peut ce baser sur les [classiques](https://www.datanovia.com/en/blog/ggplot-examples-best-reference/) et en rajouter par la suite.
@@ -80,6 +82,8 @@ Optionnel ;
 
 - On pourra voir quels sont les liens entre les plots : une line plot va t'il être suivie par un heatmap ? (on tente une chaine de makrov ?)
     - On peut aussi catégoriser la suite de plot/analyse pour un type d'expérience donnée (exemple pour une Transcriptomic analysis : line plot (abondance de transcrit) suivie de heatmap suivie de d'analyse GOterm)
+
+altmetrics : 
 
 ## Organisation 
 
