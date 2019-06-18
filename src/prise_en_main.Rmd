@@ -24,7 +24,7 @@ ipak <- function(pkg){
 
 # usage
 packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl")
-packages <- c(packages, "wdman", "RSelenium", "seleniumPipes")
+#packages <- c(packages, "wdman", "RSelenium", "seleniumPipes")
 # wdman for managing the Selenium server d/l
 # RSelenium for getting a connection to the Selenium server
 # seleniumPipes for better navigation & scraping idioms
@@ -180,12 +180,12 @@ sel %>%
   go("https://www.ncbi.nlm.nih.gov/pubmed/?term=herpesvirus+oyster")
 
 
-<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
-
-  
-<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
-
-id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page"
+#<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" #id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+#
+#  
+#<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" #id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+#
+#id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page"
   
 # Start the scraping process by hitting the initial submit button
 EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page
@@ -197,3 +197,83 @@ sel %>%
   getPageSource() %>% # like read_html()
   html_node("table.iceDatTbl") -> dtbl  # this is the data table
 ```
+
+
+Reformatage des fichier en Bash
+
+```
+for file in ./Openaccess/* ; 
+  do
+  cut -d"," -f2- $file > tmp_file
+  sed -e '1,1d' < tmp_file > $file
+  tac $file | sed "1,2{d}" | tac > tmp_file
+  mv tmp_file $file
+done
+```
+
+
+```{r}
+
+BasePath <- "~/Documents/BibliographeR/raw/"
+
+
+datas <- read.table(paste0(BasePath, "2014_SCIE_SSCI_InCites_journal_citation_Reports.csv"),
+                          header = T, dec = ".", sep = ",", stringsAsFactors=F)
+fichiers <- list.files(path=BasePath,
+                         pattern="*.csv")
+fichier <- gsub("_InCites_journal_citation_Reports.csv","", fichiers[1])
+types <- "Total.Cites"
+
+
+Concat_files <- function(directory, types){
+  # boucle for
+  if (missing(directory)) stop("directory is missing")
+  fichiers <- list.files(path=directory,
+                         pattern="*.csv")
+  if (length(c(types)) == 1) {
+    for (fichier in fichiers) {
+      datas <- read.table(paste0(directory, fichier),
+                          header = T, dec = ".", sep = ",", stringsAsFactors=F)
+      # Construction du vecteur avec les noms des fichiers
+      fichier <-  gsub("_InCites_journal_citation_Reports.csv","",fichier)
+      # Géré les noms des colonnes
+      if (exists("Names_VC") == FALSE) {
+        Names_VC <- c("Full.Journal.Title")
+      }
+      Names_VC <- append(Names_VC, fichier) 
+      
+      #colnames(datas) <- c("Full.Journal.Title", "Total.Cites", "Journal.Impact.Factor", "Eigenfactor.Score")
+      # Géré les exception pour les SNP
+      if (exists("VCallingDataSet") == FALSE) {
+        VCallingDataSet <- data.frame(matrix(NA, nrow = 1, ncol = ncol(datas)))
+        colnames(VCallingDataSet) <- colnames(datas)
+        VCallingDataSet <- VCallingDataSet[c("Full.Journal.Title", types)] # Mettre un paramètre ici
+      }
+      VCallingDataSet <- Reduce(function(x, y) merge(x = x, y = y, by = c("Full.Journal.Title"), all=TRUE),
+                                list(VCallingDataSet,
+                                     datas[c("Full.Journal.Title", types)] ) )
+      if (ncol(VCallingDataSet) == 3 ) {
+        if (sum(is.na(VCallingDataSet$Total.Cites.x)) == nrow(VCallingDataSet)) {
+          if (TRUE %in% is.na(VCallingDataSet$Total.Cites.x)) {
+            VCallingDataSet <- VCallingDataSet[,-1]
+            VCallingDataSet <- VCallingDataSet[-nrow(VCallingDataSet),]
+          }
+        }
+      }
+      colnames(VCallingDataSet) <- Names_VC
+      #rm(VCallingDataSet)
+    }
+    #VCallingDataSet[is.na(VCallingDataSet)] <- as.numeric(0)
+    return(VCallingDataSet)
+  } else if (length(c(types)) == 2) {
+    writeLines("A dévelopé")
+  } else {
+    stop("To much argument for Type")
+  }
+}
+
+Concat_files(BasePath, "Total.Cites")
+Concat_files(BasePath, "Journal.Impact.Factor")
+Concat_files(BasePath, "Eigenfactor.Score")
+```
+
