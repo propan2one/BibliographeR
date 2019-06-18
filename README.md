@@ -59,6 +59,8 @@ Optionnel ;
 
     - Parler à des scientifiques de différents domaines pour essayer d'avoir le type de d'analyse pour une expérience donnée
 
+- Feature : Mettre dans la shiny app la possibilité de fournir le .bib de la biblio et de faire l'analyse de la bilbio
+
 ### 4) Travailler sur des techniques d'image recognition pour classifer les plots
 
 - Déterminer la base de données d'images, c'est à dire sur quels plots on va utiliser (tradeoff plot utile vs image dispo), on peut se baser sur les [classiques](https://www.datanovia.com/en/blog/ggplot-examples-best-reference/) et en rajouter par la suite.
@@ -143,6 +145,8 @@ Tableau 4 : Bdd avec les https://zenodo.org/record/2754830
 
 - sjr inice h pour chaque revue :
 
+
+altmetrics : 
 
 ## Organisation 
 
