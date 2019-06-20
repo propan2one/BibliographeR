@@ -1,5 +1,9 @@
 #!/usr/bin/Rscript
 
+## USAGE ##
+#Rscript concat_table.R --arg1="Total.Cites"
+
+
 ## Collect arguments
 args <- commandArgs(TRUE)
 
@@ -66,4 +70,4 @@ Concat_files <- function(directory, types){
 }
 
 tableau <- Concat_files(BasePath, types)
-write.table(tableau, file = paste0(BasePath,"/concat_",types,".csv"), dec = ",", sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(tableau, file = paste0(BasePath,"concat_",types,".csv"), dec = ",", sep = "\t", quote = FALSE, row.names = FALSE)
