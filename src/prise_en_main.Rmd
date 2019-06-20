@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Fonction to install / load package if it's not here
 ipak <- function(pkg){
   new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
-  if (length(new.pkg)) 
+  if (length(new.pkg))
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
@@ -72,7 +72,7 @@ lsf.str("package:rentrez")
 virus_oysters$file
 
 # Vérifier les str rentrer avec un dico ?
-# utiliser les paste0 pour fomuler les queries 
+# utiliser les paste0 pour fomuler les queries
 
 years <- 1960:2019
 #total_papers <- papers_by_year(years, "")
@@ -92,7 +92,7 @@ p <- ggplot(evolution_biblio, aes(years, papers, colour=query))+
 Dans un premier temps je vais tenter de récupérer le titre d'un article sur la page principal :
 
 ![output_to_parse_1](~/Documents/BibliographeR/results/images/first_tittle_to_parse.png)
-**Image 1**. Capture d'écran du 1er article de la page. 
+**Image 1**. Capture d'écran du 1er article de la page.
 
 Ensuite j'ai copié collé les 3 Xpath des 3 premier titres pour voir où ça changé :
 
@@ -157,22 +157,22 @@ selServ$log()$stderr #We need the port # so do this and look for the port in the
 sel <- remoteDr(browserName = "firefox", port = 4567) # Now we need to connect to it and we need to use the port # from ^^. It was 4567 in my case
 
 # Now, go to the main URL
-sel %>% 
+sel %>%
   go("https://jurispub.admin.ch/publiws/pub/search.jsf")
 
 # Start the scraping process by hitting the initial submit button
-sel %>% 
-  findElement("name", "form:searchSubmitButton") %>%  # find the submit button 
+sel %>%
+  findElement("name", "form:searchSubmitButton") %>%  # find the submit button
   elementClick() # click it
 
 <input class="iceCmdBtn" id="form:searchSubmitButton" name="form:searchSubmitButton" onblur="setFocus('');" onclick="iceSubmitPartial(form, this, event);return false;" onfocus="setFocus(this.id);" type="submit" value="suchen">
 
 <a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
 
-  
+
 <a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
-  
-sel %>% 
+
+sel %>%
   getPageSource() %>% # like read_html()
   html_node("table.iceDatTbl") -> dtbl  # this is the data table
 ```
@@ -184,29 +184,105 @@ selServ$log()$stderr #We need the port # so do this and look for the port in the
 sel <- remoteDr(browserName = "firefox", port = 4567) # Now we need to connect to it and we need to use the port # from ^^. It was 4567 in my case
 
 # Now, go to the main URL
-sel %>% 
+sel %>%
   go("https://www.ncbi.nlm.nih.gov/pubmed/?term=herpesvirus+oyster")
 
-<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
 
+#<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="4" accesskey="k" #id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+#
+#  
+#<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" #id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
+#
+#id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page"
 
-  
-<a name="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page" title="Next page of results" class="active page_link next" href="#" sid="3" page="5" accesskey="k" id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page">Next &gt;</a>
-
-id="EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page"
-  
 # Start the scraping process by hitting the initial submit button
 EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page
-sel %>% 
-  findElement(using = "id", "EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page") %>%  # find the submit button 
+sel %>%
+  findElement(using = "id", "EntrezSystem2.PEntrez.PubMed.Pubmed_ResultsPanel.Pubmed_Pager.Page") %>%  # find the submit button
   elementClick() # click it
 
-sel %>% 
+sel %>%
   getPageSource() %>% # like read_html()
   html_node("table.iceDatTbl") -> dtbl  # this is the data table
 ```
 
 
+Reformatage des fichier en Bash
+
+```
+for file in ./Openaccess/* ;
+  do
+  cut -d"," -f2- $file > tmp_file
+  sed -e '1,1d' < tmp_file > $file
+  tac $file | sed "1,2{d}" | tac > tmp_file
+  mv tmp_file $file
+done
+```
+
+
+```{r}
+
+BasePath <- "~/Documents/BibliographeR/raw/"
+
+
+datas <- read.table(paste0(BasePath, "2014_SCIE_SSCI_InCites_journal_citation_Reports.csv"),
+                          header = T, dec = ".", sep = ",", stringsAsFactors=F)
+fichiers <- list.files(path=BasePath,
+                         pattern="*.csv")
+fichier <- gsub("_InCites_journal_citation_Reports.csv","", fichiers[1])
+types <- "Total.Cites"
+
+
+Concat_files <- function(directory, types){
+  # boucle for
+  if (missing(directory)) stop("directory is missing")
+  fichiers <- list.files(path=directory,
+                         pattern="*.csv")
+  if (length(c(types)) == 1) {
+    for (fichier in fichiers) {
+      datas <- read.table(paste0(directory, fichier),
+                          header = T, dec = ".", sep = ",", stringsAsFactors=F)
+      # Construction du vecteur avec les noms des fichiers
+      fichier <-  gsub("_InCites_journal_citation_Reports.csv","",fichier)
+      # Géré les noms des colonnes
+      if (exists("Names_VC") == FALSE) {
+        Names_VC <- c("Full.Journal.Title")
+      }
+      Names_VC <- append(Names_VC, fichier)
+
+      #colnames(datas) <- c("Full.Journal.Title", "Total.Cites", "Journal.Impact.Factor", "Eigenfactor.Score")
+      # Géré les exception pour les SNP
+      if (exists("VCallingDataSet") == FALSE) {
+        VCallingDataSet <- data.frame(matrix(NA, nrow = 1, ncol = ncol(datas)))
+        colnames(VCallingDataSet) <- colnames(datas)
+        VCallingDataSet <- VCallingDataSet[c("Full.Journal.Title", types)] # Mettre un paramètre ici
+      }
+      VCallingDataSet <- Reduce(function(x, y) merge(x = x, y = y, by = c("Full.Journal.Title"), all=TRUE),
+                                list(VCallingDataSet,
+                                     datas[c("Full.Journal.Title", types)] ) )
+      if (ncol(VCallingDataSet) == 3 ) {
+        if (sum(is.na(VCallingDataSet$Total.Cites.x)) == nrow(VCallingDataSet)) {
+          if (TRUE %in% is.na(VCallingDataSet$Total.Cites.x)) {
+            VCallingDataSet <- VCallingDataSet[,-1]
+            VCallingDataSet <- VCallingDataSet[-nrow(VCallingDataSet),]
+          }
+        }
+      }
+      colnames(VCallingDataSet) <- Names_VC
+      #rm(VCallingDataSet)
+    }
+    #VCallingDataSet[is.na(VCallingDataSet)] <- as.numeric(0)
+    return(VCallingDataSet)
+  } else if (length(c(types)) == 2) {
+    writeLines("A dévelopé")
+  } else {
+    stop("To much argument for Type")
+  }
+}
+
+Concat_files(BasePath, "Total.Cites")
+Concat_files(BasePath, "Journal.Impact.Factor")
+Concat_files(BasePath, "Eigenfactor.Score")
 ```{r}
 #https://stringr.tidyverse.org/articles/regular-expressions.html
 BasePath <- "/home/jean/Documents/BibliographeR/"
@@ -219,7 +295,7 @@ dataset1$Details[1]
 dataset1$DOI <- gsub(".$","", str_match(dataset1$Details, "doi: (.*?) ")[,2] )
 
 TMP_vec <- dataset1 %>%
-  mutate(col_test = str_extract_all(Details, "doi: .+$")) 
+  mutate(col_test = str_extract_all(Details, "doi: .+$"))
 
 doi_qui_interest <- c()
 for (i in str_split(TMP_vec, " ") ) {
@@ -231,11 +307,11 @@ dataset1 <- dataset1 %>%
 
 dataset1$Details[4]
 dataset1$Details[1]
-  
+
 dataset1$DOI <- paste0("https://doi.org/",dataset1$DOI)
 dataset1[which(dataset1$DOI == "https://doi.org/NA"),]$DOI <- NA
 write.table(dataset1, file = paste0(BasePath,"raw/oyster_herpesvirus_pubmed_result_DOI.csv"), sep = ";", quote=FALSE, row.names = FALSE)
-# 
+#
 ```
 
 ```{r}
@@ -243,4 +319,3 @@ write.table(dataset1, file = paste0(BasePath,"raw/oyster_herpesvirus_pubmed_resu
 my_query <- 'Damiano Fantini[AU] AND '
 my_query <- get_pubmed_ids(my_query)
 ```
-
