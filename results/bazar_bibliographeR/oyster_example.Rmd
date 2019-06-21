@@ -288,11 +288,11 @@ harvest_PMID_date <- function(get_PMID_Date) {
   return(date_PMID)
 }
 
-date_to_tabgraph<- c(harvest_PMID_date(PMID_form_un),
+date_to_tabgraph<- unlist(c(harvest_PMID_date(PMID_form_un),
                      harvest_PMID_date(PMID_form_deux),
                      harvest_PMID_date(PMID_form_trois),
                      harvest_PMID_date(PMID_form_quatre),
-                     harvest_PMID_date(PMID_form_cinq))
-
+                     harvest_PMID_date(PMID_form_cinq)), use.names = TRUE)
+ cbind(tab_graph,date_to_tabgraph )
 ```
 
