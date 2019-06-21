@@ -65,6 +65,7 @@ tab <- df %>%
 
 ```{r}
 tab <- readRDS("tab_oyster_author_coord.RDS")
+#tab <- tab_oyster_author_coord
 tab %>%
   glimpse()
 ```
@@ -102,7 +103,7 @@ tab %>%
          year = as.numeric(year)) %>%
   ggplot(aes(x = year, y = nb_paper )) +
   geom_line() +
-  geom_point()
+  geom_point(col = "red")
 
 ```
 
