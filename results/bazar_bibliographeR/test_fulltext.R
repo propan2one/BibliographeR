@@ -120,6 +120,20 @@ test <- scimago %>%
 #########################"
 index_df
 
+id_list <- append(tab_graph$from, tab_graph$to) %>% unique() 
+
+
+###############################
+xml <- entrez_fetch(db="pubmed", id_list[1:100], rettype = "xml")
+
+seq(10)
+
+for (i in 101:length(id_list)){
+  xml <- append(xml, entrez_fetch(db="pubmed", id_list[i], rettype = "xml"))
+}
+
+xml <- entrez_fetch(db="pubmed", id_list[1:100], rettype = "xml")
+
 
 #install.packages("easyPubMed")
 library(easyPubMed)
