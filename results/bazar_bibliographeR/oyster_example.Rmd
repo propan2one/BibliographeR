@@ -173,13 +173,28 @@ labs(y = "Word frequency", x = "Year") +
 # minimal theme & customizations
 theme_minimal() +
 theme(
-  legend.position = c(0.1, .99),
+  legend.position = c(0.2, .99),
   legend.justification = c("right", "top"),
   panel.grid.major = element_line(colour = "whitesmoke")
 )
 
 ```
 
+### chatterplot abstract
+
+```{r}
+# tokenize text at the single word (aka unigram) level
+hn_word_tokens <- tab %>% unnest_tokens(word, token = "words", format = "xml", input = abstract)
+
+# remove stop words (e.g. 'a', 'the', 'and')
+hn_word_tokens_no_stop <- hn_word_tokens %>% anti_join(get_stopwords())
+
+# create word counts
+hn_word_counts <- hn_word_tokens_no_stop %>% count(word, sort = T)
+
+# print top 10 most frequent words
+hn_word_counts %>% head(15)
+```
 
 
 # Data 2 recupération des citation dans le XML via rentrez
