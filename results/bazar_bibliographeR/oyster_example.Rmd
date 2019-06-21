@@ -113,7 +113,6 @@ tab %>%
 ### Text mining
 
 ```{r}
-
 # tokenize text at the single word (aka unigram) level
 ll <- tab$keywords %>%
   map(str_split, ";") %>%
@@ -177,14 +176,12 @@ labs(y = "Word frequency", x = "Year") +
 # minimal theme & customizations
 theme_minimal() +
 theme(
-  legend.position = c(.99, .99),
+  legend.position = c(.30, .99),
   legend.justification = c("right", "top"),
   panel.grid.major = element_line(colour = "whitesmoke")
 )
 
 ```
-
-
 
 # Data 2 recupération des citation dans le XML via rentrez
 
@@ -230,6 +227,8 @@ edges <- tab_graph
 
 #Create graph for Louvain
 graph <- graph_from_data_frame(edges, directed = FALSE)
+plot(graph, layout = coords)
+plot(delete.vertices(simplify(graph), degree(graph)==1))
 
 #Louvain Comunity Detection
 cluster <- cluster_louvain(graph)
@@ -244,6 +243,70 @@ cluster_df$label <- rownames(cluster_df)
 nodes <- left_join(nodes, cluster_df)
 colnames(nodes)[3] <- "group"
 
-visNetwork(nodes, edges)
+visNetwork(nodes, edges) %>%
+  visLayout(randomSeed = 123)
+
+visNetwork(nodes, edges) %>% 
+  visInteraction(dragNodes = FALSE, 
+                 dragView = FALSE, 
+                 zoomView = FALSE) %>%
+  visLayout(randomSeed = 123)
+
+# en cercle
+visNetwork(nodes, edges, height = "500px") %>%
+  visIgraphLayout(layout = "layout_in_circle") %>%
+  
+  visNodes(size = 10) %>%
+  visOptions(highlightNearest = list(enabled = T, hover = T), 
+             nodesIdSelection = T)
+```
+
+```{r}
+recs <- entrez_fetch(db = "pubmed", id = test_id, rettype = "xml", parsed = TRUE)
+
+raw_abs <- entrez_fetch(db="pubmed", id=test_id, rettype="pubdate")
+  extract_from_esummary(raw_abs, "date")
+
+query <- "oyster AND herpesvirus"
+on_pubmed <- get_pubmed_ids(query)
+abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "ASCII")
+df <- table_articles_byAuth(pubmed_data = abstracts_xml, 
+                            included_authors = "first", 
+                            max_chars = -1,
+                            autofill = TRUE)
+```
+
+```{r}
+PMID_form <- tab_graph %>%
+  select(to) %>%
+  distinct()
+# Recup PMID date, could be change to take other datas 
+harvest_PMID_date <- function(get_PMID_Date) {
+  #PMID <- PMID_form[1]
+  date_PMID <- c()
+  for (PMID in get_PMID_Date) {
+    get_PMID_Date <- entrez_fetch(db = "pubmed", id=PMID, rettype = "xml",
+                                  parsed = TRUE)
+    iter_PMID <-xpathSApply(get_PMID_Date, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+    date_PMID <- append(date_PMID, iter_PMID)
+    writeLines(PMID)
+  }
+  return(date_PMID)
+}
+date_to_tabgraph<- harvest_PMID_date(PMID_form)
+
+  for (PMID in PMID_form) {
+  #PMID <- PMID_form[1]
+  get_PMID_Date <- entrez_fetch(db = "pubmed", id=PMID, rettype = "xml",
+                                parsed = TRUE)
+  iter_PMID <- rbind(iter_PMID, c(PMID, xpathSApply(test_un, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)))
+  rm(get_PMID_Date)
+  writeLines(PMID)
+}
+
+test_un <- entrez_fetch(db = "pubmed", rettype = "xml", parsed = TRUE, web_history=web_histo_tokUn)
+xpathSApply(test_un, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+
+
 ```
 
