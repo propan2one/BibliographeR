@@ -6,11 +6,7 @@ library(XML)
 library(roomba)
 
 
-coord_institutions_loop %>%
-  filter(is.na(lat))
-
-
-r_search <- entrez_search(db="pubmed", term="oyster herpesvirus", retmax = 141)
+r_search <- entrez_search(db="pubmed", term="oyster herpesvirus", retmax = 200)
 
 xml <- entrez_fetch(db="pubmed", r_search$ids, rettype = "xml")
 
@@ -64,35 +60,65 @@ colnames(nodes)[3] <- "group"
 p <- visNetwork(nodes, edges)
 p
 
-t1 <- tibble(col1 = c("A", "B"), col2 = list(c("1","2"),c("4","9","8")))
 
-t1 %>% unnest()
-# install.packages("devtools")
-devtools::install_github("ropenscilabs/roomba")
-library(roomba)
-#load twitter data example
-data(twitter_data)
+####################################################################################################
 
-#roomba-fy!
-roomba(twitter_data, c("created_at", "name"))
+pmid_2010 <- tab %>%
+  filter(year <= 2010) %>%
+  select(pmid) %>%
+  pull()
+
+tab_graph_2010 <- tab_graph %>%
+  filter(from %in% pmid_2000)
+
+append(tab_graph$from, values = tab_graph_2010$to) %>%
+  unique()
+
+nodes <-tibble(id = append(tab_graph_2010$from, values = tab_graph_2010$to) %>%
+                 unique() ) %>%
+  mutate(label = id)
+
+edges <- tab_graph_2010
+
+library(igraph)
+#Create graph for Louvain
+graph <- graph_from_data_frame(edges, directed = FALSE)
+
+#Louvain Comunity Detection
+cluster <- cluster_louvain(graph)
+
+cluster_df <- data.frame(as.list(membership(cluster)))
+cluster_df <- as.data.frame(t(cluster_df))
+rownames(cluster_df) <- rownames(cluster_df) %>%
+  str_sub(2) 
+cluster_df$label <- rownames(cluster_df)
+
+glimpse(nodes)
+glimpse(cluster_df)
+
+#Create group column
+nodes <- left_join(nodes, cluster_df)
+colnames(nodes)[3] <- "group"
+
+p <- visNetwork(nodes, edges)
+p
+#####################################################################################################
+
+index_df %>%
+  group_by(year) %>%
+  count(Title, sort = TRUE)
 
 
-ref_list %>% map(get_PMID)
+scimago %>%
+  group_by(year) %>%
+  count(Title, sort = TRUE)
 
-r_search$ids
-r_search$count
-r_search$retmax
-
-xml_list2 <- xmlToList(fetch2)
-
+test <- scimago %>%
+  filter(Title == "ACM INTERNATIONAL CONFERENCE PROCEEDING SERIES" & year == "2003")
 
 
-dami_query <- "Damiano Fantini[AU] AND 2017[PDAT]"
-dami_on_pubmed <- get_pubmed_ids(dami_query)
-dami_abstracts_xml <- fetch_pubmed_data(dami_on_pubmed)
-dami_abstracts_list <- articles_to_list(dami_abstracts_xml)
-t1 <- article_to_df(pubmedArticle = dami_abstracts_list[[1]], autofill = FALSE)
-t2 <- article_to_df(pubmedArticle = dami_abstracts_list[[2]], autofill = TRUE, max_chars = 300)[1:2,]
+#########################"
+index_df
 
 
 #install.packages("easyPubMed")
