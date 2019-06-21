@@ -142,8 +142,6 @@ tab_count_year <- avg_year %>%
 # select the top 100 words by n (aka word count)
 tab_count_year %>% top_n(40, wt = n) %>%
 
-
-
 # construct ggplot
 ggplot(aes(avg_year, n, label = keyword)) +
 
@@ -155,20 +153,18 @@ geom_text_repel(segment.alpha = 0,
 scale_color_gradient(
   low = "green3",
   high = "violetred",
-  trans = "log10",
   guide = guide_colourbar(direction = "horizontal",
                           title.position = "top")
 ) +
 # set word size range & turn off legend
 scale_size_continuous(range = c(3, 10),
                       guide = FALSE) +
-scale_x_log10() +     # use log-scale for x-axis
 ggtitle(
   paste0(
-    "Top 20 words from ",
-    nrow(sub_tab_id_kw),
+    "Top 40 words from ",
+    nrow(tab),
     # dynamically include row count
-    " Hacker News article comments, by frequency"
+    " articles with keywords oyster and herpesvirus"
   ),
   subtitle = "word frequency (size) ~ year (color)"
 ) +
@@ -245,5 +241,31 @@ nodes <- left_join(nodes, cluster_df)
 colnames(nodes)[3] <- "group"
 
 visNetwork(nodes, edges)
+```
+
+
+### Jointure des fichiers d'index
+
+```{r}
+OpenAcess <- readRDS("~/git/BibliographeR/raw/OpenAcess.RDS")
+SCIE <- readRDS("~/git/BibliographeR/raw/SCIE.RDS")
+scimago <- readRDS("~/git/BibliographeR/raw/scimago.RDS")
+
+SCIE <- SCIE %>%
+  rename(Title = `Full Journal Title`)
+
+OpenAcess <- OpenAcess %>%
+  rename(Title = `Full Journal Title`)
+
+
+scimago <- scimago %>%
+  mutate
+
+index_df <- scimago %>%
+  full_join(SCIE) %>%
+  full_join(OpenAcess) %>%
+  distinct()
+
+#saveRDS(index_df, "index_df.RDS")
 ```
 
