@@ -1,0 +1,249 @@
+---
+title: "Example Oyster"
+author: "Cécile Sauder"
+date: "20/06/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rentrez)
+library(tidyverse)
+library(XML)
+library(roomba)
+library(easyPubMed)
+library(ggmap)
+library(igraph)
+library(visNetwork)
+library(tidytext)
+library(ggrepel)
+```
+
+# Data
+
+### Récupération via le package easyPubMed des auteurs et mots et abstract entier...
+
+```{r, eval=FALSE}
+query <- "oyster AND herpesvirus"
+on_pubmed <- get_pubmed_ids(query)
+abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "ASCII")
+df <- table_articles_byAuth(pubmed_data = abstracts_xml, 
+                            included_authors = "first", 
+                            max_chars = -1,
+                            autofill = TRUE)
+```
+
+
+### Récupération des coordonnées des institutions
+
+```{r, eval=FALSE}
+for( i in 1:nrow(df)){
+  print(i)
+  df_temp <- df[i,] %>%
+    mutate_geocode(address)
+  df_c <- df_c %>%
+    bind_rows(df_temp)
+  saveRDS(df_c, "coord_institutions_loop_oyster.RDS")
+}
+```
+
+### Jointure des 2 tableaux
+
+```{r, eval=FALSE}
+
+t2 <- coord_institutions_loop_oyster %>%
+  filter(!is.na(lat)) %>%
+  select(-abstract)
+
+tab <- df %>%
+  left_join(t2)
+
+```
+
+
+### glimpse
+
+```{r}
+tab <- readRDS("tab_oyster_author_coord.RDS")
+#tab <- tab_oyster_author_coord
+tab %>%
+  glimpse()
+```
+
+
+### data indices
+
+```{r, eval=FALSE}
+path = "scimago_data/"
+file_list  <- list.files(path = path, recursive = T, full.names = T)
+
+tt <- file_list %>% 
+  map(read_delim, ";", escape_double = FALSE, trim_ws = TRUE) %>%
+  map_dfr(bind_rows, .id = "ID") %>%
+  mutate(ID = as.numeric(ID)) %>%
+  mutate(year = ID + 1998) %>%
+  select(-ID)
+
+tt %>%
+  arrange(Title) %>%
+  select(Title) %>%
+  distinct() %>%
+  head()
+```
+
+
+
+## plot nombre d'article par années
+
+```{r}
+tab %>%
+  count(year, sort = TRUE) %>%
+  arrange(year) %>%
+  mutate(nb_paper = cumsum(n),
+         year = as.numeric(year)) %>%
+  ggplot(aes(x = year, y = nb_paper )) +
+  geom_line() +
+  geom_point(col = "red")
+
+```
+
+
+## Chatterplot des keywords
+
+### Text mining
+
+```{r}
+
+# tokenize text at the single word (aka unigram) level
+ll <- tab$keywords %>%
+  map(str_split, ";") %>%
+  flatten()
+
+sub_tab_id_kw <- tibble(pmid = tab$pmid, year = tab$year, keyword = ll) %>%
+  unnest() %>%
+  mutate(keyword = keyword %>% 
+           str_squish() %>%
+           str_to_lower()
+           ) %>%
+  filter(!is.na(keyword))
+
+count_word <- sub_tab_id_kw %>%
+  count(keyword, sort = TRUE)
+
+
+avg_year <- sub_tab_id_kw %>%
+  group_by(keyword) %>%
+  summarise(avg_year = mean(as.numeric(year), na.rm = TRUE))
+  
+tab_count_year <- avg_year %>%
+  left_join(count_word)
+
+
+# select the top 100 words by n (aka word count)
+tab_count_year %>% top_n(40, wt = n) %>%
+
+
+
+# construct ggplot
+ggplot(aes(avg_year, n, label = keyword)) +
+
+# ggrepel geom, make arrows transparent, color by rank, size by n
+geom_text_repel(segment.alpha = 0,
+                aes(colour = avg_year, size = n)) +
+
+# set color gradient,log transform & customize legend
+scale_color_gradient(
+  low = "green3",
+  high = "violetred",
+  trans = "log10",
+  guide = guide_colourbar(direction = "horizontal",
+                          title.position = "top")
+) +
+# set word size range & turn off legend
+scale_size_continuous(range = c(3, 10),
+                      guide = FALSE) +
+scale_x_log10() +     # use log-scale for x-axis
+ggtitle(
+  paste0(
+    "Top 20 words from ",
+    nrow(sub_tab_id_kw),
+    # dynamically include row count
+    " Hacker News article comments, by frequency"
+  ),
+  subtitle = "word frequency (size) ~ year (color)"
+) +
+labs(y = "Word frequency", x = "Year") +
+
+# minimal theme & customizations
+theme_minimal() +
+theme(
+  legend.position = c(.99, .99),
+  legend.justification = c("right", "top"),
+  panel.grid.major = element_line(colour = "whitesmoke")
+)
+
+```
+
+
+
+# Data 2 recupération des citation dans le XML via rentrez
+
+```{r}
+r_search <- entrez_search(db="pubmed", term="oyster herpesvirus", retmax = 141)
+
+xml <- entrez_fetch(db="pubmed", r_search$ids, rettype = "xml")
+
+xml_list2 <- xmlToList(xml)
+
+list_from <- xml_list2 %>%
+  map(c("MedlineCitation", "PMID", "text"))
+
+list_to <- xml_list2 %>%
+  map(c("PubmedData", "ReferenceList"),.default = NA) %>%
+  map(roomba, "text") %>%
+  map("text")
+
+tib <- tibble(from = unlist(list_from), to = list_to)
+
+tib_avec_citation <- tib %>%
+  filter(to != "NULL")
+
+tab_graph <- tib_avec_citation %>% unnest()
+```
+
+Il n'y a que 32 articles sur les 141 pour lesquels on retrouve les citations dans le xml.
+
+```{r}
+tab$pmid %in% nodes$id %>% cumsum()
+```
+
+Avec les articles cités dans ces 32 articles on retrouve 103 des 141.
+
+## network 
+
+```{r}
+nodes <- tibble(id = append(tab_graph$from, values = tab_graph$to) %>%
+                  unique()) %>%
+  mutate(label = id)
+
+edges <- tab_graph
+
+#Create graph for Louvain
+graph <- graph_from_data_frame(edges, directed = FALSE)
+
+#Louvain Comunity Detection
+cluster <- cluster_louvain(graph)
+
+cluster_df <- data.frame(as.list(membership(cluster)))
+cluster_df <- as.data.frame(t(cluster_df))
+rownames(cluster_df) <- rownames(cluster_df) %>%
+  str_sub(2) 
+cluster_df$label <- rownames(cluster_df)
+
+#Create group column
+nodes <- left_join(nodes, cluster_df)
+colnames(nodes)[3] <- "group"
+
+visNetwork(nodes, edges)
+```
+
