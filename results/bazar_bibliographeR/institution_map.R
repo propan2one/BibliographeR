@@ -6,9 +6,6 @@ library(tidyverse)
 df <- read_csv("authors_per_institution.csv") %>%
   filter(!is.na(institution))
 
-#AIzaSyDojdF3OzfYFo6DcwH6hSobb1eVlX5Plso
-#register_google(key = "AIzaSyDojdF3OzfYFo6DcwH6hSobb1eVlX5Plso", write = TRUE)
-#key in /home/cecile/.Renviron
 
 df_c <- df %>%
    mutate_geocode(institution)
