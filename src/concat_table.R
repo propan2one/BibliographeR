@@ -12,7 +12,7 @@ argsDF <- as.data.frame(do.call("rbind", parseArgs(args)))
 argsL <- as.list(as.character(argsDF$V2))
 names(argsL) <- argsDF$V1
 
-BasePath <- "~/Documents/BibliographeR/raw/"
+
 
 ## Arg1 default
 if(is.null(as.character(unlist(argsL[1]))) ) {
@@ -21,6 +21,13 @@ if(is.null(as.character(unlist(argsL[1]))) ) {
 } else {
   types <- as.character(unlist(argsL[1]))
 }
+
+library(tidyverse)
+
+directory <- BasePath
+types <- "Total.Cites"
+fichier <- fichiers[2]
+
 
 Concat_files <- function(directory, types){
   # boucle for
@@ -38,24 +45,19 @@ Concat_files <- function(directory, types){
         Names_VC <- c("Full.Journal.Title")
       }
       Names_VC <- append(Names_VC, fichier) 
-      
       #colnames(datas) <- c("Full.Journal.Title", "Total.Cites", "Journal.Impact.Factor", "Eigenfactor.Score")
-      # Géré les exception pour les SNP
+      # Géré les exception pour les SNP rm(VCallingDataSet)
       if (exists("VCallingDataSet") == FALSE) {
-        VCallingDataSet <- data.frame(matrix(NA, nrow = 1, ncol = ncol(datas)))
-        colnames(VCallingDataSet) <- colnames(datas)
-        VCallingDataSet <- VCallingDataSet[c("Full.Journal.Title", types)] # Mettre un paramètre ici
-      }
-      VCallingDataSet <- Reduce(function(x, y) merge(x = x, y = y, by = c("Full.Journal.Title"), all=TRUE),
-                                list(VCallingDataSet,
-                                     datas[c("Full.Journal.Title", types)] ) )
-      if (ncol(VCallingDataSet) == 3 ) {
-        if (sum(is.na(VCallingDataSet$Total.Cites.x)) == nrow(VCallingDataSet)) {
-          if (TRUE %in% is.na(VCallingDataSet$Total.Cites.x)) {
-            VCallingDataSet <- VCallingDataSet[,-1]
-            VCallingDataSet <- VCallingDataSet[-nrow(VCallingDataSet),]
-          }
-        }
+        VCallingDataSet <- data.frame(matrix("A", nrow = 1, ncol = ncol(datas[c("Full.Journal.Title", types)])))
+        colnames(VCallingDataSet) <- c(colnames(datas)[1], "COL_RM")
+        #VCallingDataSet <- VCallingDataSet[c("Full.Journal.Title", "COL_RM")] # Mettre un paramètre ici
+        VCallingDataSet <- VCallingDataSet %>%
+          full_join(datas[c("Full.Journal.Title", types)])
+        VCallingDataSet <- VCallingDataSet[,-2]
+        VCallingDataSet <- VCallingDataSet[-1,]
+      } else {
+      VCallingDataSet <- VCallingDataSet %>%
+        full_join(datas[c("Full.Journal.Title", types)])
       }
       colnames(VCallingDataSet) <- Names_VC
       #rm(VCallingDataSet)
@@ -69,5 +71,16 @@ Concat_files <- function(directory, types){
   }
 }
 
+BasePath <- "~/Documents/BibliographeR/raw/SCIE/"
+
+#tableau <- Concat_files(BasePath, "Total.Cites")
+write.table(tableau, file = paste0(BasePath,"concat_",Total.Cites,".csv"), dec = ",", sep = "\t", quote = FALSE, row.names = FALSE)
+
+types <-"Journal.Impact.Factor"
 tableau <- Concat_files(BasePath, types)
 write.table(tableau, file = paste0(BasePath,"concat_",types,".csv"), dec = ",", sep = "\t", quote = FALSE, row.names = FALSE)
+
+types <-"Eigenfactor.Score"
+tableau <- Concat_files(BasePath, types)
+write.table(tableau, file = paste0(BasePath,"concat_",types,".csv"), dec = ",", sep = "\t", quote = FALSE, row.names = FALSE)
+
