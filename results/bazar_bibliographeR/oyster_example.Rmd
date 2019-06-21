@@ -173,7 +173,7 @@ labs(y = "Word frequency", x = "Year") +
 # minimal theme & customizations
 theme_minimal() +
 theme(
-  legend.position = c(.99, .99),
+  legend.position = c(0.1, .99),
   legend.justification = c("right", "top"),
   panel.grid.major = element_line(colour = "whitesmoke")
 )
