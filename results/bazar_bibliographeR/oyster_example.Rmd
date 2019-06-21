@@ -262,24 +262,18 @@ visNetwork(nodes, edges, height = "500px") %>%
 ```
 
 ```{r}
-recs <- entrez_fetch(db = "pubmed", id = test_id, rettype = "xml", parsed = TRUE)
-
-raw_abs <- entrez_fetch(db="pubmed", id=test_id, rettype="pubdate")
-  extract_from_esummary(raw_abs, "date")
-
-query <- "oyster AND herpesvirus"
-on_pubmed <- get_pubmed_ids(query)
-abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "ASCII")
-df <- table_articles_byAuth(pubmed_data = abstracts_xml, 
-                            included_authors = "first", 
-                            max_chars = -1,
-                            autofill = TRUE)
-```
-
-```{r}
 PMID_form <- tab_graph %>%
   select(to) %>%
   distinct()
+
+count(PMID_form)
+
+PMID_form_un <- unlist(PMID_form, use.names = FALSE)[1:200]
+PMID_form_deux <- unlist(PMID_form, use.names = FALSE)[201:400]
+PMID_form_trois <- unlist(PMID_form, use.names = FALSE)[401:600]
+PMID_form_quatre <- unlist(PMID_form, use.names = FALSE)[601:800]
+PMID_form_cinq <- unlist(PMID_form, use.names = FALSE)[801:length(unlist(PMID_form, use.names = FALSE) )]
+
 # Recup PMID date, could be change to take other datas 
 harvest_PMID_date <- function(get_PMID_Date) {
   #PMID <- PMID_form[1]
@@ -293,6 +287,12 @@ harvest_PMID_date <- function(get_PMID_Date) {
   }
   return(date_PMID)
 }
-date_to_tabgraph<- harvest_PMID_date(PMID_form)
+
+date_to_tabgraph<- c(harvest_PMID_date(PMID_form_un),
+                     harvest_PMID_date(PMID_form_deux),
+                     harvest_PMID_date(PMID_form_trois),
+                     harvest_PMID_date(PMID_form_quatre),
+                     harvest_PMID_date(PMID_form_cinq))
+
 ```
 
