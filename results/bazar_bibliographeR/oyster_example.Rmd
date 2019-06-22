@@ -28,6 +28,8 @@ library(quanteda)
 query <- "oyster AND herpesvirus"
 on_pubmed <- get_pubmed_ids(query)
 abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "UTF8")
+
+df_test <- article_to_df(abstracts_xml)
 df <- table_articles_byAuth(pubmed_data = abstracts_xml, 
                             included_authors = "first", 
                             max_chars = -1,
@@ -36,7 +38,7 @@ df <- table_articles_byAuth(pubmed_data = abstracts_xml,
 
 On peut faire la même chose mais en récupérant tous les auteurs :
 
-```{r}
+```{r, eval = FALSE}
 df_all_authors <- table_articles_byAuth(pubmed_data = abstracts_xml, 
                             included_authors = "all", 
                             max_chars = -1,
@@ -84,7 +86,7 @@ tab %>%
 ### data indices
 
 ```{r, eval=FALSE}
-path = "scimago_data/"
+path = "raw/scimago/"
 file_list  <- list.files(path = path, recursive = T, full.names = T)
 
 tt <- file_list %>% 
@@ -99,6 +101,69 @@ tt %>%
   select(Title) %>%
   distinct() %>%
   head()
+
+tt_gat <- tt %>%
+  group_by(year, Sourceid) %>%
+  select(contains("Total Docs")) %>%
+  select(-contains("years")) %>%
+  gather("Year_total_Doc", "Total_Docs", -year, -Sourceid)
+
+tt_gat <- tt_gat %>%
+  mutate(Year_total_Doc = Year_total_Doc %>%
+           str_extract_all("[:digit:]+"))
+
+tt_gat2 <- tt_gat %>%
+  filter(year == Year_total_Doc)
+
+tt_gat2 <- tt_gat2 %>%
+  select(-Year_total_Doc)
+
+tt2 <- tt %>%
+  select(-c(9,20:38)) %>% 
+  left_join(tt_gat2) %>%
+  mutate(Title = str_to_upper(Title))
+
+#saveRDS(tt2, "raw/scimago.RDS")         
+
+
+################SCIE
+
+path = "raw/SCIE/"
+
+test <- read_csv("raw/SCIE/1997_SCIE_SSCI_InCites_journal_citation_Reports.csv", na = "Not Available")
+
+file_list  <- list.files(path = path, recursive = T, full.names = T)
+
+tt <- file_list %>% 
+  map(read_csv, na = "Not Available") %>%
+  map_dfr(bind_rows, .id = "ID") %>%
+  mutate(ID = as.numeric(ID)) %>%
+  mutate(year = ID + 1996) %>%
+  select(-ID) %>%
+  select(-Rank) %>%
+  rename(Title = `Full Journal Title`)
+
+#saveRDS(tt, "raw/SCIE.RDS")
+
+################# Open Access
+
+
+path = "raw/Openacess/"
+
+test <- read_csv("raw/Openacess/1997_InCites_journal_citation_Reports.csv", na = "Not Available")
+
+file_list  <- list.files(path = path, recursive = T, full.names = T)
+
+tt <- file_list %>% 
+  map(read_csv, na = "Not Available") %>%
+  map_dfr(bind_rows, .id = "ID") %>%
+  mutate(ID = as.numeric(ID)) %>%
+  mutate(year = ID + 1996) %>%
+  select(-ID) %>%
+  rename(Title = `Full Journal Title`)
+
+#saveRDS(tt, "raw/OpenAccess.RDS")
+
 ```
 
 
@@ -303,7 +368,7 @@ nodes <- tibble(id = append(tab_graph$from, values = tab_graph$to) %>%
 
 edges <- tab_graph
 # test argument nom
-colnames(edges) <- c("from","to","length")
+#colnames(edges) <- c("from","to","length")
 
 #Create graph for Louvain
 graph <- graph_from_data_frame(edges, directed = FALSE)
@@ -312,11 +377,11 @@ graph <- graph_from_data_frame(edges, directed = FALSE)
 
 # from p16 of the link
 # Number of eadge element num 1 between each elem
-graph[c(unique(edges$from))[1]]
-degree(graph) # count of edge for each PIMD
-neighbors(graph,"30310074") #Renvoi le nom des voisins
-graph[["30310074"]] # idem mais syntaxe différente
-graph[["30310074", edges = TRUE]]
+# graph[c(unique(edges$from))[1]]
+# degree(graph) # count of edge for each PIMD
+# neighbors(graph,"30310074") #Renvoi le nom des voisins
+# graph[["30310074"]] # idem mais syntaxe différente
+# graph[["30310074", edges = TRUE]]
 
 ## Transitivity p46
 
@@ -353,14 +418,74 @@ visNetwork(nodes, edges, height = "500px") %>%
              nodesIdSelection = T)
 ```
 
+Dans ce qui suit, on a été obligé de faire une boucle sale, car sans boucles ça crashait car trop de données à allouer, et avec une boucle en itérant sur 1 à la fois mais sans Sys.sleep, on faisait plus de 3 requêtes par seconde sur l'API entrez et du coup ça crashait aussi...
+
 ```{r}
+id_list <- append(tab_graph$from, tab_graph$to) %>% unique() 
+
+xml <- c()
+
+xlm300 <- entrez_fetch(db="pubmed", id_list[1:300], rettype = "xml")
+xlm600 <- entrez_fetch(db="pubmed", id_list[301:600], rettype = "xml")
+xlm851 <- entrez_fetch(db="pubmed", id_list[601:851], rettype = "xml")
+
+abstracts_xml
+
+xml <- xmlInternalTreeParse(xlm300,useInternalNodes=T)
+xml["//MedlineCitation/Article/Abstract/AbstractText"]
+
+
+xpathSApply()
+
+writeLines()
+
+writeLines(abstracts_xml)
+
+writeLines(xlm300)
+xml_list1 <- xmlToList(xlm300)
+xml_list2 <- xmlToList(xlm600)
+xml_list3 <- xmlToList(xlm851)
+
+xml_list <- list(xml_list1, xml_list2, xml_list3) %>%
+  reduce(append)
+
+xml_list1
+
+df_test <- article_to_df(xlm600)
+
+
+xml_list$PubmedArticle$MedlineCitation$Article$Abstract$AbstractText
+
+
+test <- xml_list %>%
+  map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA) 
+
+test[6]$PubmedArticle$text
+
+roomba()
+
+%>%
+  roomba("AbstractText")
+
+map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA)
+
+xml[1]
+xml_list2 <- xmlToList(xml)
+
+test <- xml_list2 %>%
+  map_dfr(c("MedlineCitation", "Article", "ArticleDate", "Year"))
+```
+
+
+
+```{r, eval=FALSE}
 # Recup PMID date, could be change to take other datas 
-harvest_PMID_date <- function(get_PMID_Date) {
+harvest_PMID_date <- function(list_PMID) {
 date_PMID <- data.frame()
-  for (PMID in get_PMID_Date) {
-    get_PMID_Date <- entrez_fetch(db = "pubmed", id=PMID, rettype = "xml",
+  for (PMID in list_PMID) {
+    xml <- entrez_fetch(db = "pubmed", id=PMID, rettype = "xml",
                                   parsed = TRUE)
-    iter_PMID <-xpathSApply(get_PMID_Date, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+    iter_PMID <-xpathSApply(xml, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
     if (mode(iter_PMID) == "list") {
       iter_PMID <- NA
     }
@@ -374,6 +499,11 @@ date_PMID <- data.frame()
 PMID_form <- tab_graph %>%
   select(from) %>%
   distinct()
+
+PMID_to <- tab_graph %>%
+  select(to) %>%
+  distinct()
+
 PMID_form <- harvest_PMID_date(unlist(PMID_form, use.names = FALSE))
 colnames(PMID_form) <- c("from", "date_from")
 tab_graph <- tab_graph %>%

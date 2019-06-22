@@ -122,19 +122,25 @@ index_df
 
 id_list <- append(tab_graph$from, tab_graph$to) %>% unique() 
 
+e_summary <- entrez_summary(db="pubmed", id=id_list)
 
-###############################
 xml <- entrez_fetch(db="pubmed", id_list[1:100], rettype = "xml")
 
-seq(10)
 
 for (i in 101:length(id_list)){
   xml <- append(xml, entrez_fetch(db="pubmed", id_list[i], rettype = "xml"))
-  Sys.sleep(0.5)
+  Sys.sleep(0.2)
 }
 
-xml <- entrez_fetch(db="pubmed", id_list[1:100], rettype = "xml")
 
+id_sum <- entrez_summary(db="pubmed", id=30281676)
+
+id_sum$pubdate
+
+ref <- id_sum$references
+
+
+#######
 
 #install.packages("easyPubMed")
 library(easyPubMed)
