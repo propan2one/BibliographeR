@@ -130,6 +130,7 @@ seq(10)
 
 for (i in 101:length(id_list)){
   xml <- append(xml, entrez_fetch(db="pubmed", id_list[i], rettype = "xml"))
+  Sys.sleep(0.5)
 }
 
 xml <- entrez_fetch(db="pubmed", id_list[1:100], rettype = "xml")

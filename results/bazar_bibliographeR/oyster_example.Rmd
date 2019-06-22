@@ -27,12 +27,22 @@ library(quanteda)
 ```{r, eval=FALSE}
 query <- "oyster AND herpesvirus"
 on_pubmed <- get_pubmed_ids(query)
-abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "ASCII")
+abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "UTF8")
 df <- table_articles_byAuth(pubmed_data = abstracts_xml, 
                             included_authors = "first", 
                             max_chars = -1,
                             autofill = TRUE)
 ```
+
+On peut faire la même chose mais en récupérant tous les auteurs :
+
+```{r}
+df_all_authors <- table_articles_byAuth(pubmed_data = abstracts_xml, 
+                            included_authors = "all", 
+                            max_chars = -1,
+                            autofill = TRUE)
+```
+
 
 
 ### Récupération des coordonnées des institutions
@@ -380,6 +390,8 @@ tab$pmid %in% nodes$id %>% cumsum()
 
 
 ### Jointure des fichiers d'index
+
+La récupération des csv et bind_row_isation est faite dans joinSJR.R
 
 ```{r}
 OpenAccess <- readRDS("~/git/BibliographeR/raw/OpenAccess.RDS")
