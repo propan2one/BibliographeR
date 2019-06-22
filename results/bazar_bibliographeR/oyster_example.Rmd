@@ -114,7 +114,10 @@ tab %>%
 ### Text mining
 
 ```{r}
+<<<<<<< HEAD
+=======
 
+>>>>>>> fec4045ea912b89e207a2d219d7ad0bbda49b057
 # tokenize text at the single word (aka unigram) level
 ll <- tab$keywords %>%
   map(str_split, ";") %>%
@@ -154,6 +157,7 @@ geom_text_repel(segment.alpha = 0,
 scale_color_gradient(
   low = "green3",
   high = "violetred",
+  trans = "log10",
   guide = guide_colourbar(direction = "horizontal",
                           title.position = "top")
 ) +
@@ -310,6 +314,57 @@ cluster_df$label <- rownames(cluster_df)
 nodes <- left_join(nodes, cluster_df)
 colnames(nodes)[3] <- "group"
 
+visNetwork(nodes, edges) %>%
+  visLayout(randomSeed = 123)
+
+visNetwork(nodes, edges) %>% 
+  visInteraction(dragNodes = FALSE, 
+                 dragView = FALSE, 
+                 zoomView = FALSE) %>%
+  visLayout(randomSeed = 123)
+
+# en cercle
+visNetwork(nodes, edges, height = "500px") %>%
+  visIgraphLayout(layout = "layout_in_circle") %>%
+  
+  visNodes(size = 10) %>%
+  visOptions(highlightNearest = list(enabled = T, hover = T), 
+             nodesIdSelection = T)
+```
+
+```{r}
+PMID_form <- tab_graph %>%
+  select(to) %>%
+  distinct()
+
+count(PMID_form)
+
+PMID_form_un <- unlist(PMID_form, use.names = FALSE)[1:200]
+PMID_form_deux <- unlist(PMID_form, use.names = FALSE)[201:400]
+PMID_form_trois <- unlist(PMID_form, use.names = FALSE)[401:600]
+PMID_form_quatre <- unlist(PMID_form, use.names = FALSE)[601:800]
+PMID_form_cinq <- unlist(PMID_form, use.names = FALSE)[801:length(unlist(PMID_form, use.names = FALSE) )]
+
+# Recup PMID date, could be change to take other datas 
+harvest_PMID_date <- function(get_PMID_Date) {
+  #PMID <- PMID_form[1]
+  date_PMID <- c()
+  for (PMID in get_PMID_Date) {
+    get_PMID_Date <- entrez_fetch(db = "pubmed", id=PMID, rettype = "xml",
+                                  parsed = TRUE)
+    iter_PMID <-xpathSApply(get_PMID_Date, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+    date_PMID <- append(date_PMID, iter_PMID)
+    writeLines(PMID)
+  }
+  return(date_PMID)
+}
+
+date_to_tabgraph<- unlist(c(harvest_PMID_date(PMID_form_un),
+                     harvest_PMID_date(PMID_form_deux),
+                     harvest_PMID_date(PMID_form_trois),
+                     harvest_PMID_date(PMID_form_quatre),
+                     harvest_PMID_date(PMID_form_cinq)), use.names = TRUE)
+ cbind(tab_graph,date_to_tabgraph )
 visNetwork(nodes, edges)
 ```
 
