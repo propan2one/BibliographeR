@@ -37,5 +37,44 @@ tt2 <- tt %>%
   left_join(tt_gat2) %>%
   mutate(Title = str_to_upper(Title))
 
-saveRDS(tt2, "raw/scimago.RDS")         
+#saveRDS(tt2, "raw/scimago.RDS")         
+
+
+################SCIE
+
+path = "raw/SCIE/"
+
+test <- read_csv("raw/SCIE/1997_SCIE_SSCI_InCites_journal_citation_Reports.csv", na = "Not Available")
+
+file_list  <- list.files(path = path, recursive = T, full.names = T)
+
+tt <- file_list %>% 
+  map(read_csv, na = "Not Available") %>%
+  map_dfr(bind_rows, .id = "ID") %>%
+  mutate(ID = as.numeric(ID)) %>%
+  mutate(year = ID + 1996) %>%
+  select(-ID) %>%
+  select(-Rank) %>%
+  rename(Title = `Full Journal Title`)
+
+#saveRDS(tt, "raw/SCIE.RDS")
+
+################# Open Access
+
+
+path = "raw/Openacess/"
+
+test <- read_csv("raw/Openacess/1997_InCites_journal_citation_Reports.csv", na = "Not Available")
+
+file_list  <- list.files(path = path, recursive = T, full.names = T)
+
+tt <- file_list %>% 
+  map(read_csv, na = "Not Available") %>%
+  map_dfr(bind_rows, .id = "ID") %>%
+  mutate(ID = as.numeric(ID)) %>%
+  mutate(year = ID + 1996) %>%
+  select(-ID) %>%
+  rename(Title = `Full Journal Title`)
+
+#saveRDS(tt, "raw/OpenAccess.RDS")
 

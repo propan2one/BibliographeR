@@ -382,25 +382,16 @@ tab$pmid %in% nodes$id %>% cumsum()
 ### Jointure des fichiers d'index
 
 ```{r}
-OpenAcess <- readRDS("~/git/BibliographeR/raw/OpenAcess.RDS")
+OpenAccess <- readRDS("~/git/BibliographeR/raw/OpenAccess.RDS")
 SCIE <- readRDS("~/git/BibliographeR/raw/SCIE.RDS")
 scimago <- readRDS("~/git/BibliographeR/raw/scimago.RDS")
 
-SCIE <- SCIE %>%
-  rename(Title = `Full Journal Title`)
-
-OpenAcess <- OpenAcess %>%
-  rename(Title = `Full Journal Title`)
-
-
-scimago <- scimago %>%
-  mutate
 
 index_df <- scimago %>%
   full_join(SCIE) %>%
   full_join(OpenAcess) %>%
   distinct()
 
-#saveRDS(index_df, "index_df.RDS")
+#saveRDS(index_df, "raw/index_df.RDS")
 ```
 
