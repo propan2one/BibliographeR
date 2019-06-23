@@ -118,17 +118,15 @@ ggplot() +
 
 
 ```{r}
-
 # Easy to make it interactive!
 library(plotly)
 library(viridis)
 
 # plot
-p=count_author_coord %>%
+p <- count_author_coord %>%
   arrange(n) %>%
   mutate( lastname=factor(lastname, unique(lastname))) %>%
-  mutate( mytext=paste("Author: ", lastname, "\n", "Article number: ", n, sep="")) %>%  # This prepare the text displayed on hover.
- 
+  mutate( mytext=paste("Author: ", lastname, "\n", "Article number: ", n, sep="")) %>%
   # Makte the static plot calling this text:
   ggplot() +
     geom_polygon(data = map, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
@@ -142,7 +140,7 @@ p=count_author_coord %>%
     coord_map() 
     #theme(legend.position = "none")
  
-p=ggplotly(p, tooltip="text")
+p <- ggplotly(p, tooltip="text")
 p
 ```
 
@@ -862,7 +860,7 @@ ggplotly(p)
 
 ```{r}
 # Pour l'analyse des graphes : https://ieeexplore.ieee.org/document/7300886/authors
-
+# goal : maximizing the spread of influence igraph
 
 # Recherche spécifique et syntaxes
 graph[c(unique(edges$from))[1]]
