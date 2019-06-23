@@ -620,6 +620,7 @@ index_df <- scimago %>%
 
 ## Traitement des graphes
 
+#le code suivant marche pas 
 ```{r}
 graph[c(unique(edges$from))[1]]
 degree(graph) # count of edge for each PIMD
