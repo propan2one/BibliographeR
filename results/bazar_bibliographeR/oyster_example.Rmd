@@ -145,6 +145,20 @@ p
 ```
 
 
+##barplot
+
+```{r}
+p <- count_author_coord[1:10,] %>%
+  ggplot(aes(x=forcats::fct_reorder(lastname, n), y=n, fill = lastname)) +
+  geom_bar(stat = "identity") +
+  theme(legend.position = "none") +
+  coord_flip() +
+  xlab("") + ylab("Number of articles")
+
+ggplotly(p)
+```
+
+
 #VIVE LE NETTOYAGE DE DONNEES
 
 
