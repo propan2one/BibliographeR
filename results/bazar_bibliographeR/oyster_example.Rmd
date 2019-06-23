@@ -828,6 +828,9 @@ Bon avec Country c'est la loose aussi on tente aec pusblisher
 ## Traitement des graphes
 
 ```{r}
+# Pour l'analyse des graphes : https://ieeexplore.ieee.org/document/7300886/authors
+
+
 # Recherche spécifique et syntaxes
 graph[c(unique(edges$from))[1]]
 degree(graph) # count of edge for each PIMD
@@ -842,6 +845,7 @@ PMID_Voisin <- neighborhood(graph = graph,nodes = "28316573") %>%
   names()
 
 xml_neighborhood <- entrez_fetch(db="pubmed", PMID_Voisin, rettype = "xml")
+writef(xml_neighborhood, "~/home/jean/Documents/xml_neighborhood_28316573.csv")
 
 xml_neighborhood_corected <- xml_neighborhood %>%
   str_remove_all("<i>") %>%
@@ -858,8 +862,26 @@ dates <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "ArticleDate", "Year"),.default = NA)
 xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article"),.default = NA)
-
 #ISSN : $PubmedArticle$MedlineCitation$Article$Journal$ISSN$text
+
+
+xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article", "AuthorList"),.default = NA)
+
+author_ForeName <- xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article", "AuthorList", "Author", "ForeName"),.default = NA)
+author_LastName <- xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article", "AuthorList", "Author", "LastName"),.default = NA)
+
+tibble(author_ForeName= unlist(author_ForeName, use.names = FALSE),
+       author_LastName= unlist(author_LastName, use.names = FALSE))
+
+
+#$PubmedArticle$MedlineCitation$Article$AuthorList$Author$AffiliationInfo
+
+
+PMID_Voisin %in% tab$pmid
+
 
 iter_PMID <-xpathSApply(xml, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
 
