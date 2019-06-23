@@ -27,9 +27,9 @@ library(quanteda)
 ```{r, eval=FALSE}
 query <- "oyster AND herpesvirus"
 on_pubmed <- get_pubmed_ids(query)
-abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "UTF8")
+abstracts_xml <- fetch_pubmed_data(on_pubmed, encoding = "ASCII")
 
-df_test <- article_to_df(abstracts_xml)
+#df_test <- article_to_df(abstracts_xml)
 df <- table_articles_byAuth(pubmed_data = abstracts_xml, 
                             included_authors = "first", 
                             max_chars = -1,
@@ -43,7 +43,110 @@ df_all_authors <- table_articles_byAuth(pubmed_data = abstracts_xml,
                             included_authors = "all", 
                             max_chars = -1,
                             autofill = TRUE)
+
+df_all_authors %>% 
+  group_by(pmid) %>%
+  select(lastname, firstname) %>%
+  distinct()
+
+df_all_authors <- df_all_authors %>%
+  mutate(author = paste(lastname, firstname, sep = " "))
+
+count_author <- df_all_authors %>%
+  count(lastname, sort = TRUE)
+
+count_author_inst <- count_author %>%
+  left_join(df_all_authors %>%
+              select(lastname, address)) %>%
+  left_join(tab %>%
+              select(address, lon, lat)) %>%
+  distinct()
+
+
+count_author_inst %>%
+  filter(lastname== "Renault") %>%
+  count(address, sort = TRUE)
+
+
+count_author_inst %>%
+  filter(lastname== "Renault") %>%
+  count(lat, sort = TRUE)
+
+tab_lat <- count_author_inst %>%
+  group_by(lastname, lat) %>%
+  count(lat, sort = TRUE) %>%
+  filter(!is.na(lat)) %>%
+  ungroup() %>%
+  group_by(lastname) %>%
+  summarise(lat = first(lat))
+
+tab_lon <- count_author_inst %>%
+  group_by(lastname, lon) %>%
+  count(lon, sort = TRUE) %>%
+  filter(!is.na(lon)) %>%
+  ungroup() %>%
+  group_by(lastname) %>%
+  summarise(lon = first(lon))
+  
+coord_authors <- tab_lon %>%
+  left_join(tab_lat)
+
+count_author_coord <- count_author %>%
+  left_join(coord_authors)
+
 ```
+
+## map authors
+```{r}
+ 
+# Get the world polygon and extract UK
+library(maps)
+map <- map_data("world")
+
+# Get a data frame with longitude, latitude, and size of bubbles (a bubble = a city)
+data <- world.cities %>% filter(country.etc=="UK")
+
+
+# Left: use size and color
+ggplot() +
+  geom_polygon(data = map, aes(x=long, y = lat, group=group, fill="grey", alpha=0.3)) +
+  geom_point(data=count_author_coord, aes(x=lon, y=lat, size=n, color=n)) +
+  scale_size_continuous(range=c(1,12)) +
+  #scale_color_viridis(trans="log") +
+  theme_void() + coord_map() 
+```
+
+
+```{r}
+
+# Easy to make it interactive!
+library(plotly)
+ 
+# plot
+p=count_author_coord %>%
+  arrange(n) %>%
+  mutate( lastname=factor(lastname, unique(lastname))) %>%
+  mutate( mytext=paste("Author: ", lastname, "\n", "Article number: ", n, sep="")) %>%  # This prepare the text displayed on hover.
+ 
+  # Makte the static plot calling this text:
+  ggplot() +
+    geom_polygon(data = map, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
+    geom_point(aes(x=lon, y=lat, size=n, color=n, text=mytext, alpha=n) ) +
+    
+    #scale_size_continuous(range=c(1,15)) +
+    scale_color_viridis(option="inferno", trans="log" ) +
+    scale_alpha_continuous(trans="log") +
+    theme_void() +
+    #ylim(50,59) +
+    coord_map() 
+    #theme(legend.position = "none")
+ 
+library(plotly)
+p=ggplotly(p, tooltip="text")
+```
+
+
+#VIVE LE NETTOYAGE DE DONNEES
 
 
 
@@ -167,6 +270,8 @@ tt <- file_list %>%
 ```
 
 
+# contage des autheur qui publi dans le domaine + lien avec les indices
+
 
 ## plot nombre d'article par années
 
@@ -253,6 +358,24 @@ theme(
 )
 
 ```
+
+
+### evolution des keywords dans le temps 
+
+```{r}
+count_word_by_year <- sub_tab_id_kw %>%
+  group_by(year) %>%
+  count(keyword, sort = TRUE)
+
+count_word_by_year %>%
+  group_by(keyword) %>%
+  ggplot(aes(x=keyword, y = n)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~year) +
+  coord_flip()
+
+```
+
 
 ### chatterplot abstract
 
@@ -618,6 +741,83 @@ index_df <- scimago %>%
 #saveRDS(index_df, "raw/index_df.RDS")
 ```
 
+### Ajout de ces fichiers d'index dans tab
+
+```{r}
+index_df <- readRDS("~/git/BibliographeR/raw/index_df.RDS")
+
+
+tab <- tab %>%
+  mutate(journal = journal %>%
+           str_to_upper() %>%
+           str_squish() %>%
+           str_replace_all("&AMP;", "AND"))
+
+tab$journal
+
+index_df %>%
+  filter(str_detect(Title, "FISH"))
+
+names(tab)
+names(index_df)
+  
+tab_research <- tab %>%
+  mutate(year = as.numeric(year)) %>%
+  left_join(index_df %>%
+              select(-Rank, -Sourceid), 
+            by = c("journal" = "Title", "year" = "year", "publisher" = "Publisher"))
+
+names(tab_research)
+
+tab_research %>%
+  arrange(year) %>%
+  filter(is.na(SJR)) %>%
+  select(year, journal) %>%
+  distinct()
+
+xml_list2$PubmedArticle$MedlineCitation$MedlineJournalInfo
+
+tt<-xml_list2 %>%
+  map(c("MedlineCitation","MedlineJournalInfo")) %>%
+  roomba(c("PubmedArticle", "Country"), keep = any)
+
+tab_country_journal_by_pmid <- tibble(pmid = unlist(list_from), Country = unlist(tt)) 
+
+names(tab_country_journal_by_pmid)
+#ok mais j'ai pas compris pourquoi lol
+
+
+##on reteste avec Country 
+
+tab_research <- tab %>%
+  mutate(year = as.numeric(year)) %>%
+  left_join(tab_country_journal_by_pmid) %>%
+  left_join(index_df %>%
+              select(-Rank, -Sourceid), 
+            by = c("journal" = "Title", "year" = "year", "Country" = "Country")) %>%
+  filter(is.na(SJR) & year >= 1999 & year < 2019) %>%
+  select(year, Country, journal) %>%
+  distinct()
+
+#"publisher" = "Publisher",
+
+#y en manque pas mal mais bon je vais juste vérifier
+
+index_df %>%
+  filter(Title == "FISH AND SHELLFISH IMMUNOLOGY") %>%
+  select("Country") %>% distinct()
+
+
+```
+Bon avec Country c'est la loose aussi on tente aec pusblisher
+
+```{r}
+
+```
+
+
+
+
 ## Traitement des graphes
 
 #le code suivant marche pas 
@@ -711,4 +911,5 @@ xml_neighborhood_listed[1]
 $PubmedArticle$text
 
 ```
+
 
