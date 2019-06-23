@@ -18,6 +18,8 @@ library(visNetwork)
 library(tidytext)
 library(ggrepel)
 library(quanteda)
+library(conflicted)
+conflict_prefer("filter", "dplyr")
 ```
 
 # Data
@@ -58,9 +60,10 @@ count_author <- df_all_authors %>%
 count_author_inst <- count_author %>%
   left_join(df_all_authors %>%
               select(lastname, address)) %>%
-  left_join(tab %>%
+  left_join(tab %>% #Tab declaré l202
               select(address, lon, lat)) %>%
   distinct()
+#tab <- readRDS("tab_oyster_author_coord.RDS")
 
 
 count_author_inst %>%
@@ -94,11 +97,12 @@ coord_authors <- tab_lon %>%
 count_author_coord <- count_author %>%
   left_join(coord_authors)
 
+# cleaning env
+rm(tab_lon, tab_lat)
 ```
 
 ## map authors
 ```{r}
- 
 # Get the world polygon and extract UK
 library(maps)
 map <- map_data("world")
@@ -142,6 +146,11 @@ p <- count_author_coord %>%
  
 p <- ggplotly(p, tooltip="text")
 p
+
+# Avoid conflict with the map package
+conflict_prefer("map", "purrr")
+# cleaning env l94
+rm(coord_authors)
 ```
 
 
@@ -155,8 +164,10 @@ p <- count_author_coord[1:10,] %>%
   coord_flip() +
   xlab("") + ylab("Number of articles") +
   theme(text = element_text(size=20))
-
 ggplotly(p)
+
+# cleaning env l97
+rm(count_author_coord)
 ```
 
 
@@ -485,11 +496,11 @@ p <- ggplot(trend_df, aes(years, value, colour=variable)) +
   geom_line(size=1) + scale_y_log10("Number of papers") +
   ggtitle(
   paste0(
-    "Trends in the search for the top ",
+    "Trends in the science for the top ",
     number_top_keyWords,
-    " keywords"
+    " keywords of abstracts"
   ),
-  subtitle = "Each color is a keywords"
+  subtitle = ""
 ) +
 labs(y = "Number of papers", x = "Year")
 p
@@ -500,6 +511,7 @@ p
 ```{r}
 tab_count_year %>% top_n(10, wt = n) %>%
   ggplot(aes(x=avg_year,y=n,color=word))+
+  geom_bar()
 ```
 
 
@@ -513,7 +525,7 @@ xml <- entrez_fetch(db="pubmed", r_search$ids, rettype = "xml")
 xml_list2 <- xmlToList(xml)
 
 list_from <- xml_list2 %>%
-  map(c("MedlineCitation", "PMID", "text"))
+  map(c("MedlineCitation", "PMID", "text")) # problem execution : no recognized region names
 
 list_to <- xml_list2 %>%
   map(c("PubmedData", "ReferenceList"),.default = NA) %>%
@@ -597,9 +609,10 @@ visNetwork(nodes, edges, height = "500px") %>%
 #Create graph for Louvain
 #graph <- grapedgesh_from_data_frame(edges, directed = TRUE)
 
-
+#28316573 id de l'exmple
 
 visNetwork(nodes, edges) %>% 
+  visLayout(randomSeed = 123) %>%
   visEdges(arrows = 'to') %>%
   #visIgraphLayout(layout = "layout_in_circle") %>%
   visNodes(size = 10) %>%
@@ -812,9 +825,9 @@ names(tab_country_journal_by_pmid)
 tab_research <- tab %>%
   mutate(year = as.numeric(year)) %>%
   left_join(tab_country_journal_by_pmid) %>%
-  left_join(index_df %>%
-              select(-Rank, -Sourceid), 
-            by = c("journal" = "Title", "year" = "year") %>%
+  left_join(index_df) %>%
+              select(-Rank, -Sourceid, 
+            by = c("journal" = "Title", "year" = "year")) %>%
   filter(is.na(SJR) & year >= 1999 & year < 2019) %>%
   select(year, Country, journal) %>%
   distinct()
@@ -856,9 +869,11 @@ ggplotly(p)
 
 
 
-## Traitement des graphes
+## Traitement des graphes des voisinage d'un article cible
 
 ```{r}
+## wip - jean
+
 # Pour l'analyse des graphes : https://ieeexplore.ieee.org/document/7300886/authors
 # goal : maximizing the spread of influence igraph
 
@@ -889,9 +904,9 @@ title <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "ArticleTitle"),.default = NA)
 abstract <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA)
-dates <- xml_neighborhood_listed %>%
+dates <- xml_neighborhood_listed %>% # marche bof
   map(c("MedlineCitation", "Article", "ArticleDate", "Year"),.default = NA)
-xml_neighborhood_listed %>%
+xml_neighborhood_listed %>%# marche bof
   map(c("MedlineCitation", "Article"),.default = NA)
 #ISSN : $PubmedArticle$MedlineCitation$Article$Journal$ISSN$text
 
@@ -906,10 +921,6 @@ author_LastName <- xml_neighborhood_listed %>%
 
 tibble(author_ForeName= unlist(author_ForeName, use.names = FALSE),
        author_LastName= unlist(author_LastName, use.names = FALSE))
-
-
-#$PubmedArticle$MedlineCitation$Article$AuthorList$Author$AffiliationInfo
-
 
 PMID_Voisin %in% tab$pmid
 
