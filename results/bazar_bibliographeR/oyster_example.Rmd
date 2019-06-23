@@ -121,7 +121,8 @@ ggplot() +
 
 # Easy to make it interactive!
 library(plotly)
- 
+library(viridis)
+
 # plot
 p=count_author_coord %>%
   arrange(n) %>%
@@ -141,8 +142,8 @@ p=count_author_coord %>%
     coord_map() 
     #theme(legend.position = "none")
  
-library(plotly)
 p=ggplotly(p, tooltip="text")
+p
 ```
 
 
