@@ -626,25 +626,16 @@ index_df <- scimago %>%
 
 ## Traitement des graphes
 
-#le code suivant marche pas 
 ```{r}
+# Recherche spécifique et syntaxes
 graph[c(unique(edges$from))[1]]
 degree(graph) # count of edge for each PIMD
-neighbors(graph,"30310074") #Renvoi le nom des voisins
+neighbors(graph,"28316573") #Renvoi le nom des voisins
 graph[["30310074"]] # idem mais syntaxe différente
-graph[["30310074", edges = TRUE]]
+graph[["28316573", edges = TRUE]]
 
-PMID_Voisin <- names(unlist(neighborhood(graph = graph,nodes = "30310074"), use.names = TRUE))
-PMID_Voisin <- as.numeric(PMID_Voisin)
-entrez_search(db="PMID_Voisin", term=PMID_Voisin, use_history=TRUE)
-for (pmid in PMID_Voisin) {
-
-}
-```
-
-```{r}
 # Assess neighborhood
-# Problems with balise on some abstract inside the xml (e.g. 30310074), the exemple is working but 3 edges instead of 14..
+# Problems with balise on some abstract inside the xml (e.g. 30310074), the exemple is working but 14 edges with 11 citations on google..
 PMID_Voisin <- neighborhood(graph = graph,nodes = "28316573") %>% 
   unlist(use.names = TRUE) %>%
   names()
@@ -658,27 +649,62 @@ xml_neighborhood_corected <- xml_neighborhood %>%
   str_remove_all("</sup>")
 #xml_neighborhood_corected %>% str_detect("<AbstractText")
 xml_neighborhood_listed <- xmlToList(xml_neighborhood_corected)
-TITLE <- xml_neighborhood_listed %>%
+title <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "ArticleTitle"),.default = NA)
 abstract <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA)
-neighborhood_results <-tibble(PMID=PMID_Voisin, TITLE= unlist(TITLE, use.names = FALSE), abstract= unlist(abstract, use.names = FALSE))
+dates <- xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article", "ArticleDate", "Year"),.default = NA)
+xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article"),.default = NA)
+
+#ISSN : $PubmedArticle$MedlineCitation$Article$Journal$ISSN$text
+
+iter_PMID <-xpathSApply(xml, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+
+neighborhood_results <-tibble(PMID=PMID_Voisin, 
+                              title= unlist(title, use.names = FALSE), 
+                              abstract= unlist(abstract, use.names = FALSE),
+                              dates= unlist(dates, use.names = FALSE))
+
+################################# Partie à changé éventuellement
+neighborhood_results <- neighborhood_results %>%
+  mutate(abstracts_lenght=str_length(abstract)) %>%
+  mutate(title_lenght=str_length(title))
+################################# 
 
 ## NLP on Keywords - wip Jean ##
+# tokenize text at the single word (aka unigram) level
+neighborhood_title_hn_word_tokens <- neighborhood_results %>% 
+  select(PMID, title) %>%
+  unnest_tokens(word, token = "words", format = "xml", input = title)
+
+# remove stop words (e.g. 'a', 'the', 'and')
+neighborhood_title_hn_word_tokens_no_stop <- neighborhood_title_hn_word_tokens %>% anti_join(get_stopwords())
+# create word counts
+neighborhood_title_hn_word_counts <- neighborhood_title_hn_word_tokens_no_stop %>% count(word, sort = T)
 
 ## NLP on Abstract - wip Jean ##
 
 # tokenize text at the single word (aka unigram) level
-neighborhood_results_hn_word_tokens <- neighborhood_results %>% unnest_tokens(word, token = "words", format = "xml", input = abstract)
+neighborhood_abstracts_hn_word_tokens <- neighborhood_results %>% 
+  unnest_tokens(word, token = "words", format = "xml", input = abstract)
 
 # remove stop words (e.g. 'a', 'the', 'and')
-neighborhood_results_hn_word_tokens_no_stop <- neighborhood_results_hn_word_tokens %>% anti_join(get_stopwords())
+neighborhood_abstracts_hn_word_tokens_no_stop <- neighborhood_abstracts_hn_word_tokens %>% anti_join(get_stopwords())
 # create word counts
-neighborhood_results_hn_word_counts <- neighborhood_results_hn_word_tokens_no_stop %>% count(word, sort = T)
+neighborhood_abstracts_hn_word_counts <- neighborhood_abstracts_hn_word_tokens_no_stop %>% count(word, sort = T)
+
+avg_year <- neighborhood_results %>%
+  group_by(keyword) %>%
+  summarise(avg_year = mean(as.numeric(year), na.rm = TRUE))
+  
+tab_count_year <- avg_year %>%
+  left_join(count_word)
 
 
 # construct ggplot
-neighborhood_results_hn_word_counts %>% top_n(20, wt = n) %>%
+neighborhood_abstracts_hn_word_counts %>% top_n(20, wt = n) %>%
 ggplot(aes(n, label = word)) +
 
 # ggrepel geom, make arrows transparent, color by rank, size by n
