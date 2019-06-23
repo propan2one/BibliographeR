@@ -448,10 +448,10 @@ theme(
 )
 ```
 
-## Tendances de la recherche en rapport aux 10 meilleurs mots-clés
+## Tendances de la recherche en rapport aux 10 meilleurs mots-clés d'abstracts
 
 ```{r}
-# Démo rentrez
+# Démo rentrez, à rajouté dans la partie aide à la publication
 library(reshape2)
 number_top_keyWords <- 10
 papers_by_year <- function(years, search_term){
@@ -473,7 +473,6 @@ p <- ggplot(trend_df, aes(years, value, colour=variable)) +
   paste0(
     "Trends in the search for the top ",
     number_top_keyWords,
-    # dynamically include row count
     " keywords"
   ),
   subtitle = "Each color is a keywords"
@@ -481,6 +480,14 @@ p <- ggplot(trend_df, aes(years, value, colour=variable)) +
 labs(y = "Number of papers", x = "Year")
 p
 ```
+
+# Evolution des mots clé dans le domaine
+
+```{r}
+tab_count_year %>% top_n(10, wt = n) %>%
+  ggplot(aes(x=avg_year,y=n,color=word))+
+```
+
 
 # Data 2 recupération des citation dans le XML via rentrez
 
@@ -508,7 +515,6 @@ tab_graph <- tib_avec_citation %>% unnest()
 ```
 
 Il n'y a que 32 articles sur les 141 pour lesquels on retrouve les citations dans le xml.
-
 
 ## network 
 
@@ -820,95 +826,120 @@ Bon avec Country c'est la loose aussi on tente aec pusblisher
 
 ## Traitement des graphes
 
-#le code suivant marche pas 
 ```{r}
+# Recherche spécifique et syntaxes
 graph[c(unique(edges$from))[1]]
 degree(graph) # count of edge for each PIMD
-neighbors(graph,"30310074") #Renvoi le nom des voisins
+neighbors(graph,"28316573") #Renvoi le nom des voisins
 graph[["30310074"]] # idem mais syntaxe différente
-graph[["30310074", edges = TRUE]]
+graph[["28316573", edges = TRUE]]
 
-PMID_Voisin <- names(unlist(neighborhood(graph = graph,nodes = "30310074"), use.names = TRUE))
-PMID_Voisin <- as.numeric(PMID_Voisin)
-entrez_search(db="PMID_Voisin", term=PMID_Voisin, use_history=TRUE)
-for (pmid in PMID_Voisin) {
-
-}
-```
-
-```{r}
-# Recherche en cours sur les voisinages 
-PMID_Voisin <- neighborhood(graph = graph,nodes = "30310074") %>% 
+# Assess neighborhood
+# Problems with balise on some abstract inside the xml (e.g. 30310074), the exemple is working but 14 edges with 11 citations on google..
+PMID_Voisin <- neighborhood(graph = graph,nodes = "28316573") %>% 
   unlist(use.names = TRUE) %>%
   names()
 
 xml_neighborhood <- entrez_fetch(db="pubmed", PMID_Voisin, rettype = "xml")
 
-
-xml_neighborhood_listed <- xmlToList(xml_neighborhood)
-
-TITLE <- xml_neighborhood_listed %>%
+xml_neighborhood_corected <- xml_neighborhood %>%
+  str_remove_all("<i>") %>%
+  str_remove_all("</i>") %>%
+  str_remove_all("<sup>") %>%
+  str_remove_all("</sup>")
+#xml_neighborhood_corected %>% str_detect("<AbstractText")
+xml_neighborhood_listed <- xmlToList(xml_neighborhood_corected)
+title <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "ArticleTitle"),.default = NA)
-
-xpathSApply(xml_neighborhood, "//MedlineCitation/Article/ArticleTitle", xmlValue)
-xpathSApply(xml_neighborhood, "//MedlineCitation/Article/Abstract/AbstractText",resolveNamespaces = FALSE,  xmlValue)
-
-ABSTRACT <- xml_neighborhood_listed %>%
+abstract <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA)
-tibble(PMID=PMID_Voisin, TITLE= unlist(TITLE, use.names = FALSE))
+dates <- xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article", "ArticleDate", "Year"),.default = NA)
+xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article"),.default = NA)
+
+#ISSN : $PubmedArticle$MedlineCitation$Article$Journal$ISSN$text
+
+iter_PMID <-xpathSApply(xml, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+
+neighborhood_results <-tibble(PMID=PMID_Voisin, 
+                              title= unlist(title, use.names = FALSE), 
+                              abstract= unlist(abstract, use.names = FALSE),
+                              dates= unlist(dates, use.names = FALSE))
+
+################################# Partie à changé éventuellement
+neighborhood_results <- neighborhood_results %>%
+  mutate(abstracts_lenght=str_length(abstract)) %>%
+  mutate(title_lenght=str_length(title))
+################################# 
+
+## NLP on Keywords - wip Jean ##
+# tokenize text at the single word (aka unigram) level
+neighborhood_title_hn_word_tokens <- neighborhood_results %>% 
+  select(PMID, title) %>%
+  unnest_tokens(word, token = "words", format = "xml", input = title)
+
+# remove stop words (e.g. 'a', 'the', 'and')
+neighborhood_title_hn_word_tokens_no_stop <- neighborhood_title_hn_word_tokens %>% anti_join(get_stopwords())
+# create word counts
+neighborhood_title_hn_word_counts <- neighborhood_title_hn_word_tokens_no_stop %>% count(word, sort = T)
+
+## NLP on Abstract - wip Jean ##
+
+# tokenize text at the single word (aka unigram) level
+neighborhood_abstracts_hn_word_tokens <- neighborhood_results %>% 
+  unnest_tokens(word, token = "words", format = "xml", input = abstract)
+
+# remove stop words (e.g. 'a', 'the', 'and')
+neighborhood_abstracts_hn_word_tokens_no_stop <- neighborhood_abstracts_hn_word_tokens %>% anti_join(get_stopwords())
+# create word counts
+neighborhood_abstracts_hn_word_counts <- neighborhood_abstracts_hn_word_tokens_no_stop %>% count(word, sort = T)
+
+avg_year <- neighborhood_results %>%
+  group_by(keyword) %>%
+  summarise(avg_year = mean(as.numeric(year), na.rm = TRUE))
+  
+tab_count_year <- avg_year %>%
+  left_join(count_word)
 
 
-iter_PMID <-xpathSApply(get_PMID_Date, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
-xml_neighborhood_listed$PubmedArticle$MedlineCitation$Article$Abstract$AbstractText
+# construct ggplot
+neighborhood_abstracts_hn_word_counts %>% top_n(20, wt = n) %>%
+ggplot(aes(n, label = word)) +
 
+# ggrepel geom, make arrows transparent, color by rank, size by n
+geom_text_repel(segment.alpha = 0,
+                aes(colour = avg_year, size = n)) +
 
+# set color gradient,log transform & customize legend
+scale_color_gradient(
+  low = "green3",
+  high = "violetred",
+  guide = guide_colourbar(direction = "horizontal",
+                          title.position = "top")
+) +
+# set word size range & turn off legend
+scale_size_continuous(range = c(3, 10),
+                      guide = FALSE) +
+ggtitle(
+  paste0(
+    "Top 20 words from ",
+    nrow(PMID_Voisin),
+    # dynamically include row count
+    " articles with keywords oyster and herpesvirus"
+  ),
+  subtitle = "word frequency (size) ~ year (color)"
+) +
+labs(y = "Word frequency", x = "Year") +
 
-xml <- xmlInternalTreeParse(xml_neighborhood,useInternalNodes=T)
-xml["//MedlineCitation/Article/Abstract"]
-# https://stackoverflow.com/questions/23683733/parsing-an-xml-file-in-r-which-has-subnodes-having-all-values-with-the-same-tag
+# minimal theme & customizations
+theme_minimal() +
+theme(
+  legend.position = c(0, .99),
+  legend.justification = c("left", "top"),
+  panel.grid.major = element_line(colour = "whitesmoke")
+)
 
-# this is where you start
-tags  <- xml["//MedlineCitation/Article/Abstract/AbstractText"]
-result <- do.call(rbind,lapply(tags,function(tag){
-  class  <- xmlValue(tag["class"][[1]])
-  hexepc <- xmlValue(tag["hexepc"][[1]])
-  props  <- sapply(tag["props"]$props["prop"],xmlValue)
-  props  <- strsplit(props,":")
-  props  <- setNames(sapply(props,function(x)x[2]),sapply(props,function(x)x[1]))
-  c(class=class,hexepc=hexepc,props)
-}))
-result <- data.frame(result)
-
-names(unlist(ABSTRACT[4]))
-
-Abstract_vect <- c()
-ABSTRACT[4]
-for (elements in ABSTRACT) {
-  if ("PubmedArticle..attrs.Label" %in% names(unlist(elements))) {
-    elements$PubmedArticle$text
-    Abstract_vect <- append(Abstract_vect, elements$PubmedArticle$text)
-  }
-  Abstract_vect <- append(Abstract_vect, unlist(elements, use.names = FALSE))
-}
-ABSTRACT
-
-
-
-ABSTRACT[[4]]$.attrs
-ABSTRACT[[4]]$text
-
-ABSTRACT[[4]] %>% keep("text")
-
-x <- rerun(5, a = rbernoulli(1), b = sample(10))
-eaze <- x %>% keep("a")
-
-
-xml_neighborhood_listed$PubmedArticle$PubmedData$ReferenceList$Reference$ArticleIdList$ArticleId
-xml_neighborhood_listed$PubmedArticle$MedlineCitation$Article$Abstract$AbstractText
-
-
-xml_neighborhood_listed[1]
-$PubmedArticle$text
 
 ```
 
