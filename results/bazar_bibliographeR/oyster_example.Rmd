@@ -179,7 +179,6 @@ tab %>%
   ggplot(aes(x = year, y = nb_paper )) +
   geom_line() +
   geom_point(col = "red")
-
 ```
 
 
@@ -324,12 +323,41 @@ theme(
   legend.justification = c("left", "top"),
   panel.grid.major = element_line(colour = "whitesmoke")
 )
-
-
-
-
 ```
 
+## Tendances de la recherche en rapport aux 10 meilleurs mots-clés
+
+```{r}
+# Démo rentrez
+library(reshape2)
+number_top_keyWords <- 10
+papers_by_year <- function(years, search_term){
+    return(sapply(years, function(y) entrez_search(db="pubmed",term=search_term, mindate=y, maxdate=y, retmax=0)$count))
+}
+years <- 1970:2019
+total_papers <- papers_by_year(years, "")
+trend_top_dix <- tab_count_year %>% 
+    top_n(number_top_keyWords, wt = n) %>% # Mettre un curseur pour le top dans la shiny app ?
+    select(word) %>%
+    pull()
+  
+trend_data <- sapply(trend_top_dix, function(t) papers_by_year(years, t))
+trend_props <- trend_data/total_papers
+trend_df <- melt(data.frame(years, trend_props), id.vars="years")
+p <- ggplot(trend_df, aes(years, value, colour=variable)) +
+  geom_line(size=1) + scale_y_log10("Number of papers") +
+  ggtitle(
+  paste0(
+    "Trends in the search for the top ",
+    number_top_keyWords,
+    # dynamically include row count
+    " keywords"
+  ),
+  subtitle = "Each color is a keywords"
+) +
+labs(y = "Number of papers", x = "Year")
+p
+```
 
 # Data 2 recupération des citation dans le XML via rentrez
 
@@ -412,7 +440,6 @@ visNetwork(nodes, edges) %>%
 # Graph en cercle en cercle
 visNetwork(nodes, edges, height = "500px") %>%
   visIgraphLayout(layout = "layout_in_circle") %>%
-  
   visNodes(size = 10) %>%
   visOptions(highlightNearest = list(enabled = T, hover = T), 
              nodesIdSelection = T)
@@ -541,6 +568,9 @@ tab_graph <- tab_graph %>%
           full_join(PMID_form)
 rm(PMID_form)
 
+PMID_to <- tab_graph %>%
+  select(to) %>%
+  distinct()
 date_to_tabgraph<- rbind(harvest_PMID_date(unlist(PMID_to, use.names = FALSE)[1:200]),
                      harvest_PMID_date(unlist(PMID_to, use.names = FALSE)[201:400]),
                      harvest_PMID_date(unlist(PMID_to, use.names = FALSE)[401:600]),
@@ -586,5 +616,98 @@ index_df <- scimago %>%
   distinct()
 
 #saveRDS(index_df, "raw/index_df.RDS")
+```
+
+## Traitement des graphes
+
+```{r}
+graph[c(unique(edges$from))[1]]
+degree(graph) # count of edge for each PIMD
+neighbors(graph,"30310074") #Renvoi le nom des voisins
+graph[["30310074"]] # idem mais syntaxe différente
+graph[["30310074", edges = TRUE]]
+
+PMID_Voisin <- names(unlist(neighborhood(graph = graph,nodes = "30310074"), use.names = TRUE))
+PMID_Voisin <- as.numeric(PMID_Voisin)
+entrez_search(db="PMID_Voisin", term=PMID_Voisin, use_history=TRUE)
+for (pmid in PMID_Voisin) {
+
+}
+```
+
+```{r}
+# Recherche en cours sur les voisinages 
+PMID_Voisin <- neighborhood(graph = graph,nodes = "30310074") %>% 
+  unlist(use.names = TRUE) %>%
+  names()
+
+xml_neighborhood <- entrez_fetch(db="pubmed", PMID_Voisin, rettype = "xml")
+
+
+xml_neighborhood_listed <- xmlToList(xml_neighborhood)
+
+TITLE <- xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article", "ArticleTitle"),.default = NA)
+
+xpathSApply(xml_neighborhood, "//MedlineCitation/Article/ArticleTitle", xmlValue)
+xpathSApply(xml_neighborhood, "//MedlineCitation/Article/Abstract/AbstractText",resolveNamespaces = FALSE,  xmlValue)
+
+ABSTRACT <- xml_neighborhood_listed %>%
+  map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA)
+tibble(PMID=PMID_Voisin, TITLE= unlist(TITLE, use.names = FALSE))
+
+
+iter_PMID <-xpathSApply(get_PMID_Date, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+xml_neighborhood_listed$PubmedArticle$MedlineCitation$Article$Abstract$AbstractText
+
+
+
+xml <- xmlInternalTreeParse(xml_neighborhood,useInternalNodes=T)
+xml["//MedlineCitation/Article/Abstract"]
+# https://stackoverflow.com/questions/23683733/parsing-an-xml-file-in-r-which-has-subnodes-having-all-values-with-the-same-tag
+
+# this is where you start
+tags  <- xml["//MedlineCitation/Article/Abstract/AbstractText"]
+result <- do.call(rbind,lapply(tags,function(tag){
+  class  <- xmlValue(tag["class"][[1]])
+  hexepc <- xmlValue(tag["hexepc"][[1]])
+  props  <- sapply(tag["props"]$props["prop"],xmlValue)
+  props  <- strsplit(props,":")
+  props  <- setNames(sapply(props,function(x)x[2]),sapply(props,function(x)x[1]))
+  c(class=class,hexepc=hexepc,props)
+}))
+result <- data.frame(result)
+
+names(unlist(ABSTRACT[4]))
+
+Abstract_vect <- c()
+ABSTRACT[4]
+for (elements in ABSTRACT) {
+  if ("PubmedArticle..attrs.Label" %in% names(unlist(elements))) {
+    elements$PubmedArticle$text
+    Abstract_vect <- append(Abstract_vect, elements$PubmedArticle$text)
+  }
+  Abstract_vect <- append(Abstract_vect, unlist(elements, use.names = FALSE))
+}
+ABSTRACT
+
+
+
+ABSTRACT[[4]]$.attrs
+ABSTRACT[[4]]$text
+
+ABSTRACT[[4]] %>% keep("text")
+
+x <- rerun(5, a = rbernoulli(1), b = sample(10))
+eaze <- x %>% keep("a")
+
+
+xml_neighborhood_listed$PubmedArticle$PubmedData$ReferenceList$Reference$ArticleIdList$ArticleId
+xml_neighborhood_listed$PubmedArticle$MedlineCitation$Article$Abstract$AbstractText
+
+
+xml_neighborhood_listed[1]
+$PubmedArticle$text
+
 ```
 
