@@ -179,7 +179,6 @@ tab %>%
   ggplot(aes(x = year, y = nb_paper )) +
   geom_line() +
   geom_point(col = "red")
-
 ```
 
 
@@ -326,6 +325,39 @@ theme(
 )
 ```
 
+## Tendances de la recherche en rapport aux 10 meilleurs mots-clés
+
+```{r}
+# Démo rentrez
+library(reshape2)
+number_top_keyWords <- 10
+papers_by_year <- function(years, search_term){
+    return(sapply(years, function(y) entrez_search(db="pubmed",term=search_term, mindate=y, maxdate=y, retmax=0)$count))
+}
+years <- 1970:2019
+total_papers <- papers_by_year(years, "")
+trend_top_dix <- tab_count_year %>% 
+    top_n(number_top_keyWords, wt = n) %>% # Mettre un curseur pour le top dans la shiny app ?
+    select(word) %>%
+    pull()
+  
+trend_data <- sapply(trend_top_dix, function(t) papers_by_year(years, t))
+trend_props <- trend_data/total_papers
+trend_df <- melt(data.frame(years, trend_props), id.vars="years")
+p <- ggplot(trend_df, aes(years, value, colour=variable)) +
+  geom_line(size=1) + scale_y_log10("Number of papers") +
+  ggtitle(
+  paste0(
+    "Trends in the search for the top ",
+    number_top_keyWords,
+    # dynamically include row count
+    " keywords"
+  ),
+  subtitle = "Each color is a keywords"
+) +
+labs(y = "Number of papers", x = "Year")
+p
+```
 
 # Data 2 recupération des citation dans le XML via rentrez
 
