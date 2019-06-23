@@ -325,10 +325,10 @@ theme(
 )
 ```
 
-## Tendances de la recherche en rapport aux 10 meilleurs mots-clés
+## Tendances de la recherche en rapport aux 10 meilleurs mots-clés d'abstracts
 
 ```{r}
-# Démo rentrez
+# Démo rentrez, à rajouté dans la partie aide à la publication
 library(reshape2)
 number_top_keyWords <- 10
 papers_by_year <- function(years, search_term){
@@ -350,7 +350,6 @@ p <- ggplot(trend_df, aes(years, value, colour=variable)) +
   paste0(
     "Trends in the search for the top ",
     number_top_keyWords,
-    # dynamically include row count
     " keywords"
   ),
   subtitle = "Each color is a keywords"
@@ -358,6 +357,14 @@ p <- ggplot(trend_df, aes(years, value, colour=variable)) +
 labs(y = "Number of papers", x = "Year")
 p
 ```
+
+# Evolution des mots clé dans le domaine
+
+```{r}
+tab_count_year %>% top_n(10, wt = n) %>%
+  ggplot(aes(x=avg_year,y=n,color=word))+
+```
+
 
 # Data 2 recupération des citation dans le XML via rentrez
 
@@ -385,7 +392,6 @@ tab_graph <- tib_avec_citation %>% unnest()
 ```
 
 Il n'y a que 32 articles sur les 141 pour lesquels on retrouve les citations dans le xml.
-
 
 ## network 
 
