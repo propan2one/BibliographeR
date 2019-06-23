@@ -416,11 +416,35 @@ visNetwork(nodes, edges, height = "500px") %>%
   visNodes(size = 10) %>%
   visOptions(highlightNearest = list(enabled = T, hover = T), 
              nodesIdSelection = T)
+
+
 ```
 
-Dans ce qui suit, on a été obligé de faire une boucle sale, car sans boucles ça crashait car trop de données à allouer, et avec une boucle en itérant sur 1 à la fois mais sans Sys.sleep, on faisait plus de 3 requêtes par seconde sur l'API entrez et du coup ça crashait aussi...
+
+## graphe orienté
 
 ```{r}
+#Create graph for Louvain
+#graph <- grapedgesh_from_data_frame(edges, directed = TRUE)
+
+
+
+visNetwork(nodes, edges) %>% 
+  visEdges(arrows = 'to') %>%
+  #visIgraphLayout(layout = "layout_in_circle") %>%
+  visNodes(size = 10) %>%
+  visOptions(highlightNearest = list(enabled = T, hover = T), 
+             nodesIdSelection = T)
+
+
+  
+```
+
+
+
+Dans ce qui suit, on a été obligé de faire une boucle sale, car sans boucle ça crashait car trop de données à allouer, et avec une boucle en itérant sur 1 à la fois mais sans Sys.sleep, on faisait plus de 3 requêtes par seconde sur l'API entrez et du coup ça crashait aussi...
+
+```{r, eval = FALSE}
 id_list <- append(tab_graph$from, tab_graph$to) %>% unique() 
 
 xml <- c()
@@ -435,16 +459,12 @@ xml <- xmlInternalTreeParse(xlm300,useInternalNodes=T)
 xml["//MedlineCitation/Article/Abstract/AbstractText"]
 
 
-xpathSApply()
-
-writeLines()
-
-writeLines(abstracts_xml)
-
 writeLines(xlm300)
 xml_list1 <- xmlToList(xlm300)
 xml_list2 <- xmlToList(xlm600)
 xml_list3 <- xmlToList(xlm851)
+
+xlm300 %>% str_detect("<i")
 
 xml_list <- list(xml_list1, xml_list2, xml_list3) %>%
   reduce(append)
@@ -456,16 +476,27 @@ df_test <- article_to_df(xlm600)
 
 xml_list$PubmedArticle$MedlineCitation$Article$Abstract$AbstractText
 
+xml_test <- xlm300 %>%
+  str_remove_all("<i>") %>%
+  str_remove_all("</i>") %>%
+  str_remove_all("<sup>") %>%
+  str_remove_all("</sup>")
 
-test <- xml_list %>%
+xml_list_test <- xmlToList(xml_test)
+
+
+test <- xml_list_test %>%
   map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA) 
 
-test[6]$PubmedArticle$text
+text <- roomba(test, "text")
+
+test[6]$PubmedArticle
+
+test[1]$PubmedArticle
 
 roomba()
 
-%>%
-  roomba("AbstractText")
+roomba("AbstractText")
 
 map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA)
 
@@ -543,7 +574,7 @@ tab$pmid %in% nodes$id %>% cumsum()
 
 La récupération des csv et bind_row_isation est faite dans joinSJR.R
 
-```{r}
+```{r, eval = FALSE}
 OpenAccess <- readRDS("~/git/BibliographeR/raw/OpenAccess.RDS")
 SCIE <- readRDS("~/git/BibliographeR/raw/SCIE.RDS")
 scimago <- readRDS("~/git/BibliographeR/raw/scimago.RDS")
@@ -551,7 +582,7 @@ scimago <- readRDS("~/git/BibliographeR/raw/scimago.RDS")
 
 index_df <- scimago %>%
   full_join(SCIE) %>%
-  full_join(OpenAcess) %>%
+  full_join(OpenAccess) %>%
   distinct()
 
 #saveRDS(index_df, "raw/index_df.RDS")
