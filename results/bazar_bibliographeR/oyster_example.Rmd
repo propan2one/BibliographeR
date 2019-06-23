@@ -155,7 +155,8 @@ p <- count_author_coord[1:10,] %>%
   geom_bar(stat = "identity") +
   theme(legend.position = "none") +
   coord_flip() +
-  xlab("") + ylab("Number of articles")
+  xlab("") + ylab("Number of articles") +
+  theme(text = element_text(size=20))
 
 ggplotly(p)
 ```
@@ -815,7 +816,7 @@ tab_research <- tab %>%
   left_join(tab_country_journal_by_pmid) %>%
   left_join(index_df %>%
               select(-Rank, -Sourceid), 
-            by = c("journal" = "Title", "year" = "year", "Country" = "Country")) %>%
+            by = c("journal" = "Title", "year" = "year") %>%
   filter(is.na(SJR) & year >= 1999 & year < 2019) %>%
   select(year, Country, journal) %>%
   distinct()
@@ -832,7 +833,25 @@ index_df %>%
 ```
 Bon avec Country c'est la loose aussi on tente aec pusblisher
 
+
+## "Newspapers in which we publish the most with these keywords"
+
 ```{r}
+#"Newspapers in which we publish the most with these keywords"
+
+count_journal <- tab %>%
+  count(jabbrv, sort=TRUE) 
+
+p <- count_journal[1:10,] %>%
+  ggplot(aes(x=forcats::fct_reorder(jabbrv,n), y=n, fill = jabbrv)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme(legend.position="none") +
+  xlab("") + ylab("Number of articles")+
+  theme(text = element_text(size=20))
+
+ggplotly(p)
+
 
 ```
 
@@ -979,5 +998,6 @@ theme(
 
 
 ```
+
 
 
