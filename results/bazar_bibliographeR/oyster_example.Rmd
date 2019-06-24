@@ -539,9 +539,9 @@ p <- ggplot(trend_df, aes(years, value, colour=variable)) +
   geom_line(size=1) + scale_y_log10("Number of papers") +
   ggtitle(
   paste0(
-    "Trends in the science for the top ",
+    "Trend in science for the ",
     number_top_keyWords,
-    " words of abstracts"
+    " inputs key words"
   ),
   subtitle = ""
 ) +
