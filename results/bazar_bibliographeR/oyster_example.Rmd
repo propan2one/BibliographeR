@@ -772,6 +772,20 @@ index_df <- scimago %>%
   distinct()
 
 #saveRDS(index_df, "raw/index_df.RDS")
+
+tab %>%
+  glimpse()
+
+index_df %>% 
+  glimpse()
+
+index_df %>%
+  filter(Type=="journal") %>%
+  count(Title, Issn , year, Type) %>%
+  filter(n>1)
+#index_df %>%
+#  filter(Type=="journal") %>%
+#  distinct()
 ```
 
 ### Ajout de ces fichiers d'index dans tab
@@ -862,12 +876,7 @@ p <- count_journal[1:10,] %>%
   theme(text = element_text(size=20))
 
 ggplotly(p)
-
-
 ```
-
-
-
 
 ## Traitement des graphes des voisinage d'un article cible
 
