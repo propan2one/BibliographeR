@@ -612,6 +612,7 @@ visNetwork(nodes, edges, height = "500px") %>%
 #graph <- grapedgesh_from_data_frame(edges, directed = TRUE)
 
 #28316573 id de l'exmple
+conflict_prefer("map", "maps")
 
 visNetwork(nodes, edges) %>% 
   visLayout(randomSeed = 123) %>%
