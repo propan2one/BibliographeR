@@ -500,7 +500,7 @@ p <- ggplot(trend_df, aes(years, value, colour=variable)) +
   paste0(
     "Trends in the science for the top ",
     number_top_keyWords,
-    " keywords of abstracts"
+    " words of abstracts"
   ),
   subtitle = ""
 ) +
@@ -1200,3 +1200,13 @@ theme(
 target_graph
 ggsave("target_graph.png")
 ```
+
+
+# Aide à la publication
+
+```{r}
+tab
+
+
+```
+
