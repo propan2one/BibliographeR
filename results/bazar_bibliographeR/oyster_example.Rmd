@@ -3,6 +3,8 @@ title: "Example Oyster"
 author: "Cécile Sauder"
 date: "20/06/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -776,40 +778,92 @@ index_df <- scimago %>%
 # Détermination des paramètres pour faie un left_join
 index_df %>%
   filter(Type=="journal") %>%
-  count(Title, Issn , year, Type) %>%
+  count(Title, Issn , year) %>%
   filter(n>1)
+index_df <- index_df %>%
+  filter(Type=="journal")
+index_df <- rename(index_df, journal = Title) #For renaming dataframe column
+index_df <- index_df %>% mutate(year = as.character(year))
+index_df <- index_df %>% 
+  mutate(journal = str_to_lower(journal))
+index_df <- index_df %>% 
+  mutate(Issn=str_replace_all(Issn, "-",""))
+
+index_df %>%
+  select(Issn) %>%
+  str_detect(",[:blank:].*?$")
+
+index_df %>% 
+  mutate(Issn_2=str_split(Issn, ","))
+
+#tab <- readRDS("tab_oyster_author_coord.RDS")
+
 # donc faut récupé les Issn de correspondant à chaque articles
 PMID_recherche <- tab %>% select(pmid)
 xml_recherche <- entrez_fetch(db="pubmed", PMID_recherche, rettype = "xml")
 xml_recherche_ToList <- xmlToList(xml_recherche)
-
-# Vérification qu'il y a bien le bon nombre d'article
-#xml_recherche_ToList %>%
-#  map(c("MedlineCitation", "Article", "Journal","ISSN","text"),.default = NA) %>%
-#  unlist() %>%
-#  length()
-
-index_df <- index_df %>% mutate(year = as.character(year))
-index_df <- index_df %>%
-  filter(Type=="journal")
-index_df <- rename(index_df, title = Title) #For renaming dataframe column
-
 Issn <- xml_recherche_ToList %>%
   map(c("MedlineCitation", "Article", "Journal","ISSN","text"),.default = NA) %>%
   unlist(use.names = FALSE)
-# Type <- 
-xml_recherche_ToList %>%
-  map(c("MedlineCitation", "Article", "Journal"),.default = NA) 
-# %>%
-#   unlist(use.names = FALSE)
+tab <- tab %>% 
+  mutate(Issn=Issn)
+tab <- tab %>% 
+  mutate(Issn = str_remove(Issn, "-")) # Parce que NCBI ne fait pas comme tout le monde
+tab <- tab %>% 
+  mutate(journal = str_to_lower(journal))
+tab <- tab %>% 
+  mutate(journal= str_replace_all(journal, "&amp;", "and"))
 
-tab <- cbind(tab, Issn) # pas tidy mais c'est pour allé plus vite
+test_join <- left_join(tab, index_df, by=c("journal", "year"))
+glimpse(test_join)
 
+test_join %>% 
+  # filter(!is.na(Type)) %>%
+  glimpse()
+
+test_join %>% 
+  filter(is.na(Publisher))
+test_join %>%
+  filter(journal=="fish")
+
+test_join %>%
+  count(pmid, sort=TRUE) %>%
+  filter(n>1) %>%
+  select(pmid) %>%
+  pull() -> list_pmid_2
+
+test_join %>%
+  filter(pmid %in% list_pmid_2) %>%
+  select(journal, Issn.x, Issn.y)
+
+test_2_indices<- index_df %>%
+  filter(Issn %in% tab$Issn) %>%
+  filter(journal %in% tab$journal)
+test_2_indices <- test_2_indices %>% 
+  mutate(journal= str_replace_all(journal, "-", ""))
+test_2_indices <- test_2_indices %>% 
+  mutate(Issn=as.character(Issn))
+
+left_join(tab, test_2_indices, by=Issn) %>%
+  glimpse()
+
+tab %>%
+left_join(test_2_indices) %>%
+  glimpse()
+
+`1664-302X`
+
+index_df %>%
+  filter(Issn %in% "1664-302X")
+
+tab$Issn 
+
+#=======================
 tab %>%
   glimpse()
 
 index_df %>% 
-  glimpse()
+  str()
 
 
 # Synchro les journaux car tilte c'est journal dans  index
@@ -824,8 +878,7 @@ index_df <- index_df %>% mutate(year = as.character(year))
 
 tab <- tab %>% 
   mutate(Issn = as.character(Issn)) 
-tab <- tab %>% 
-  mutate(Issn = str_remove(Issn, "-")) # Parce que NCBI ne fait pas comme tout le monde
+
 
 
 tab %>%
@@ -835,8 +888,7 @@ tab %>%
 index_df %>% filter(Issn==str_remove("1664-302X","-"))
 index_df %>% select(Issn)
 
-test_join <- left_join(tab, index_df)
-glimpse(test_join)
+
 # Le problème est probablement due aux maj lorsque j'ai tout mit à en str_lower, car je savais pas que le "titre" était pas la même chose dans les 2 tableaux
 
 
@@ -956,8 +1008,7 @@ PMID_Voisin <- neighborhood(graph = graph,nodes = "28316573") %>%
   names()
 
 xml_neighborhood <- entrez_fetch(db="pubmed", PMID_Voisin, rettype = "xml")
-writef(xml_neighborhood, "~/home/jean/Documents/xml_neighborhood_28316573.csv")
-
+#writef(xml_neighborhood, "~/home/jean/Documents/xml_neighborhood_28316573.csv")
 xml_neighborhood_corected <- xml_neighborhood %>%
   str_remove_all("<i>") %>%
   str_remove_all("</i>") %>%
@@ -969,52 +1020,44 @@ title <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "ArticleTitle"),.default = NA)
 abstract <- xml_neighborhood_listed %>%
   map(c("MedlineCitation", "Article", "Abstract", "AbstractText"),.default = NA)
-dates <- xml_neighborhood_listed %>% # marche bof
+year <- xml_neighborhood_listed %>% # marche bof
   map(c("MedlineCitation", "Article", "ArticleDate", "Year"),.default = NA)
-xml_neighborhood_listed %>%# marche bof
-  map(c("MedlineCitation", "Article"),.default = NA)
-#ISSN : $PubmedArticle$MedlineCitation$Article$Journal$ISSN$text
+#xml_neighborhood_listed %>%# marche bof
+#  map(c("MedlineCitation", "Article"),.default = NA)
+##ISSN : $PubmedArticle$MedlineCitation$Article$Journal$ISSN$text
 
 
-xml_neighborhood_listed %>%
-  map(c("MedlineCitation", "Article", "AuthorList"),.default = NA)
+#xml_neighborhood_listed %>%
+#  map(c("MedlineCitation", "Article", "AuthorList"),.default = NA)
 
-author_ForeName <- xml_neighborhood_listed %>%
-  map(c("MedlineCitation", "Article", "AuthorList", "Author", "ForeName"),.default = NA)
-author_LastName <- xml_neighborhood_listed %>%
-  map(c("MedlineCitation", "Article", "AuthorList", "Author", "LastName"),.default = NA)
+#author_ForeName <- xml_neighborhood_listed %>%
+#  map(c("MedlineCitation", "Article", "AuthorList", "Author", "ForeName"),.default = NA)
+#author_LastName <- xml_neighborhood_listed %>%
+#  map(c("MedlineCitation", "Article", "AuthorList", "Author", "LastName"),.default = NA)
 
-tibble(author_ForeName= unlist(author_ForeName, use.names = FALSE),
-       author_LastName= unlist(author_LastName, use.names = FALSE))
+#tibble(author_ForeName= unlist(author_ForeName, use.names = FALSE),
+#       author_LastName= unlist(author_LastName, use.names = FALSE))
+#
+#PMID_Voisin %in% tab$pmid
 
-PMID_Voisin %in% tab$pmid
 
+#iter_PMID <-xpathSApply(xml, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
 
-iter_PMID <-xpathSApply(xml, "//MedlineCitation/Article/ArticleDate/Year", xmlValue)
+#neighborhood_results <-tibble(PMID=PMID_Voisin, 
+#                              title= unlist(title, use.names = FALSE), 
+#                              abstract= unlist(abstract, use.names = FALSE),
+#                              dates= unlist(dates, use.names = FALSE))
 
 neighborhood_results <-tibble(PMID=PMID_Voisin, 
                               title= unlist(title, use.names = FALSE), 
                               abstract= unlist(abstract, use.names = FALSE),
-                              dates= unlist(dates, use.names = FALSE))
+                              year= unlist(year, use.names = FALSE))
+# Enlève l'article d'intéret de la list des pmid voisins
+#### En mode sale
+target_pmid <- neighborhood_results[which(neighborhood_results["PMID"]== "28316573"),]
+neighborhood_results <- neighborhood_results[which(neighborhood_results["PMID"] != "28316573"),]
 
-################################# Partie à changé éventuellement
-neighborhood_results <- neighborhood_results %>%
-  mutate(abstracts_lenght=str_length(abstract)) %>%
-  mutate(title_lenght=str_length(title))
-################################# 
-
-## NLP on Keywords - wip Jean ##
-# tokenize text at the single word (aka unigram) level
-neighborhood_title_hn_word_tokens <- neighborhood_results %>% 
-  select(PMID, title) %>%
-  unnest_tokens(word, token = "words", format = "xml", input = title)
-
-# remove stop words (e.g. 'a', 'the', 'and')
-neighborhood_title_hn_word_tokens_no_stop <- neighborhood_title_hn_word_tokens %>% anti_join(get_stopwords())
-# create word counts
-neighborhood_title_hn_word_counts <- neighborhood_title_hn_word_tokens_no_stop %>% count(word, sort = T)
-
-## NLP on Abstract - wip Jean ##
+###### NLP on Abstract - wip Jean ######
 
 # tokenize text at the single word (aka unigram) level
 neighborhood_abstracts_hn_word_tokens <- neighborhood_results %>% 
@@ -1022,20 +1065,33 @@ neighborhood_abstracts_hn_word_tokens <- neighborhood_results %>%
 
 # remove stop words (e.g. 'a', 'the', 'and')
 neighborhood_abstracts_hn_word_tokens_no_stop <- neighborhood_abstracts_hn_word_tokens %>% anti_join(get_stopwords())
+
+neighborhood_abstracts_hn_word_tokens_no_stop_stem <- neighborhood_abstracts_hn_word_tokens_no_stop %>%
+  mutate(word = char_wordstem(word),
+         length_word = str_length(word)) %>%
+  filter(length_word != 1) %>%
+  select(-length_word)
+
 # create word counts
 neighborhood_abstracts_hn_word_counts <- neighborhood_abstracts_hn_word_tokens_no_stop %>% count(word, sort = T)
 
-avg_year <- neighborhood_results %>%
-  group_by(keyword) %>%
+# print top 10 most frequent words
+neighborhood_abstracts_hn_word_counts %>% head(50)
+
+count_word <- neighborhood_abstracts_hn_word_tokens_no_stop_stem %>%
+  count(word, sort = TRUE)
+
+avg_year <- neighborhood_abstracts_hn_word_tokens_no_stop_stem %>%
+  group_by(word) %>%
   summarise(avg_year = mean(as.numeric(year), na.rm = TRUE))
-  
+
 tab_count_year <- avg_year %>%
   left_join(count_word)
 
-
 # construct ggplot
-neighborhood_abstracts_hn_word_counts %>% top_n(20, wt = n) %>%
-ggplot(aes(n, label = word)) +
+top_word <- 30
+neighborhood_graph <- tab_count_year %>% top_n(top_word, wt = n) %>%
+ggplot(aes(avg_year, n, label = word)) +
 
 # ggrepel geom, make arrows transparent, color by rank, size by n
 geom_text_repel(segment.alpha = 0,
@@ -1053,7 +1109,7 @@ scale_size_continuous(range = c(3, 10),
                       guide = FALSE) +
 ggtitle(
   paste0(
-    "Top 20 words from ",
+    "Top ", top_word," words from ",
     nrow(PMID_Voisin),
     # dynamically include row count
     " articles with keywords oyster and herpesvirus"
@@ -1070,8 +1126,76 @@ theme(
   panel.grid.major = element_line(colour = "whitesmoke")
 )
 
+neighborhood_graph
+#ggsave("neighborhood_graph.png")
 
+###### NLP on Target - wip Jean ######
+
+# tokenize text at the single word (aka unigram) level
+target_pmid_hn_word_tokens <- target_pmid %>% 
+  unnest_tokens(word, token = "words", format = "xml", input = abstract)
+
+# remove stop words (e.g. 'a', 'the', 'and')
+target_pmid_hn_word_tokens_no_stop <- target_pmid_hn_word_tokens %>% anti_join(get_stopwords())
+
+target_pmid_hn_word_tokens_no_stop_stem <- target_pmid_hn_word_tokens_no_stop %>%
+  mutate(word = char_wordstem(word),
+         length_word = str_length(word)) %>%
+  filter(length_word != 1) %>%
+  select(-length_word)
+
+# create word counts
+target_pmid_hn_word_counts <- target_pmid_hn_word_tokens_no_stop %>% count(word, sort = T)
+
+# print top 10 most frequent words
+target_pmid_hn_word_counts %>% head(50)
+
+count_word <- target_pmid_hn_word_tokens_no_stop_stem %>%
+  count(word, sort = TRUE)
+
+avg_year <- target_pmid_hn_word_tokens_no_stop_stem %>%
+  group_by(word) %>%
+  summarise(avg_year = mean(as.numeric(year), na.rm = TRUE))
+
+tab_count_year <- avg_year %>%
+  left_join(count_word)
+
+# construct ggplot
+target_graph <- tab_count_year %>% top_n(top_word, wt = n) %>%
+ggplot(aes(avg_year, n, label = word)) +
+
+# ggrepel geom, make arrows transparent, color by rank, size by n
+geom_text_repel(segment.alpha = 0,
+                aes(colour = avg_year, size = n)) +
+
+# set color gradient,log transform & customize legend
+scale_color_gradient(
+  low = "green3",
+  high = "violetred",
+  guide = guide_colourbar(direction = "horizontal",
+                          title.position = "top")
+) +
+# set word size range & turn off legend
+scale_size_continuous(range = c(3, 10),
+                      guide = FALSE) +
+ggtitle(
+  paste0(
+    "Top ",top_word," words from ",
+    nrow(PMID_Voisin),
+    # dynamically include row count
+    " articles with keywords oyster and herpesvirus"
+  ),
+  subtitle = "word frequency (size) ~ year (color)"
+) +
+labs(y = "Word frequency", x = "Year") +
+
+# minimal theme & customizations
+theme_minimal() +
+theme(
+  legend.position = c(0, .99),
+  legend.justification = c("left", "top"),
+  panel.grid.major = element_line(colour = "whitesmoke")
+)
+target_graph
+ggsave("target_graph.png")
 ```
-
-
-

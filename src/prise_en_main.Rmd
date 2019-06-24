@@ -23,7 +23,7 @@ ipak <- function(pkg){
 }
 
 # usage
-packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl", "easyPubMed")
+packages <- c("ggplot2", "tidyverse", "plotly", "rentrez", "reshape","rvest", "XML", "RCurl", "easyPubMed","conflicted")
 #packages <- c(packages, "wdman", "RSelenium", "seleniumPipes")
 # wdman for managing the Selenium server d/l
 # RSelenium for getting a connection to the Selenium server
