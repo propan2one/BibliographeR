@@ -37,4 +37,24 @@ tab_complet %>%
 tab_complet %>%
   filter(pmid %in% list_id)
 
+complete_table_index <- readRDS("~/git/BibliographeR/results/bazar_bibliographeR/complete_table_index.RDS")
+
+glimpse(complete_table_index)
+
+install.packages("CGPfunctions")
+library(CGPfunctions)
+newggslopegraph(newcancer, Year, Survival, Type)
+glimpse(newcancer)
+
+
+complete_table_index %>%
+  filter(year == "2017") %>%
+  select(journal, Total_Docs, SJR, `H index`, `Journal Impact Factor`, `Eigenfactor Score`) %>%
+  distinct() %>%
+  filter(!is.na(`Eigenfactor Score`)) %>%
+  mutate(journal = str_to_upper(journal)) %>%
+  mutate_if(is.numeric, rank) %>%
+  gather(key = "index", value = "value", -journal) %>%
+  newggslopegraph( index, value, journal, Title = "Journals ranks", SubTitle = "with different indexes",
+                   Caption = "", WiderLabels = TRUE)
 
