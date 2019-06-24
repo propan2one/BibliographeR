@@ -773,8 +773,78 @@ index_df <- scimago %>%
   full_join(SCIE) %>%
   full_join(OpenAccess) %>%
   distinct()
-
 #saveRDS(index_df, "raw/index_df.RDS")
+
+
+# Détermination des paramètres pour faie un left_join
+index_df %>%
+  filter(Type=="journal") %>%
+  count(Title, Issn , year, Type) %>%
+  filter(n>1)
+# donc faut récupé les Issn de correspondant à chaque articles
+PMID_recherche <- tab %>% select(pmid)
+xml_recherche <- entrez_fetch(db="pubmed", PMID_recherche, rettype = "xml")
+xml_recherche_ToList <- xmlToList(xml_recherche)
+
+# Vérification qu'il y a bien le bon nombre d'article
+#xml_recherche_ToList %>%
+#  map(c("MedlineCitation", "Article", "Journal","ISSN","text"),.default = NA) %>%
+#  unlist() %>%
+#  length()
+
+index_df <- index_df %>% mutate(year = as.character(year))
+index_df <- index_df %>%
+  filter(Type=="journal")
+index_df <- rename(index_df, title = Title) #For renaming dataframe column
+
+Issn <- xml_recherche_ToList %>%
+  map(c("MedlineCitation", "Article", "Journal","ISSN","text"),.default = NA) %>%
+  unlist(use.names = FALSE)
+# Type <- 
+xml_recherche_ToList %>%
+  map(c("MedlineCitation", "Article", "Journal"),.default = NA) 
+# %>%
+#   unlist(use.names = FALSE)
+
+tab <- cbind(tab, Issn) # pas tidy mais c'est pour allé plus vite
+
+tab %>%
+  glimpse()
+
+index_df %>% 
+  glimpse()
+
+
+# Synchro les journaux car tilte c'est journal dans  index
+index_df <- index_df %>% 
+  mutate(journal = str_to_lower(title)) 
+index_df <- select (index_df,-c(title))
+tab <- tab %>% 
+  mutate(journal = str_to_lower(journal))
+
+# Synchronisation des Issn
+index_df <- index_df %>% mutate(year = as.character(year))
+
+tab <- tab %>% 
+  mutate(Issn = as.character(Issn)) 
+tab <- tab %>% 
+  mutate(Issn = str_remove(Issn, "-")) # Parce que NCBI ne fait pas comme tout le monde
+
+
+tab %>%
+  glimpse()
+
+  mutate(Issn= str_remove("-")))
+index_df %>% filter(Issn==str_remove("1664-302X","-"))
+index_df %>% select(Issn)
+
+test_join <- left_join(tab, index_df)
+glimpse(test_join)
+# Le problème est probablement due aux maj lorsque j'ai tout mit à en str_lower, car je savais pas que le "titre" était pas la même chose dans les 2 tableaux
+
+
+
+
 ```
 
 ### Ajout de ces fichiers d'index dans tab
@@ -865,12 +935,7 @@ p <- count_journal[1:10,] %>%
   theme(text = element_text(size=20))
 
 ggplotly(p)
-
-
 ```
-
-
-
 
 ## Traitement des graphes des voisinage d'un article cible
 
