@@ -475,23 +475,64 @@ theme(
 )
 ```
 
-## Tendances de la recherche en rapport aux 10 meilleurs mots-clés d'abstracts
+## Aide à la publication
 
 ```{r}
-# Démo rentrez, à rajouté dans la partie aide à la publication
+# Insertion des mots clé et aide à la publications
+input_key_words <- c("Herpesvirus","mortal", "oyster", "disease")
+input_key_words <- tibble(tag="Input_user", input_words=input_key_words)
+# Traitements du vecteur pour faire des matchs
+
+# remove stop words (e.g. 'a', 'the', 'an
+#input_key_words <- input_key_words %>% get_stopwords()
+#input_key_words <- data.frame(input_words=input_key_words)
+#input_key_words %>%
+#  mutate(word = char_wordstem(word),
+#         length_word = str_length(word)) %>%
+#  filter(length_word != 1) %>%
+#  select(-length_word)
+
+related_article <- complete_table_index %>% 
+  filter(str_detect(str_to_lower(keywords), input_key_words[1]) | str_detect(str_to_lower(keywords), input_key_words[2]) | str_detect(str_to_lower(keywords), input_key_words[3]) | str_detect(str_to_lower(keywords), input_key_words[3]) ) %>%
+  select(pmid, title, keywords, year)
+
+related_article %>% glimpse()
+
+related_article <- related_article %>% 
+  mutate(keywords = str_to_lower(keywords))
+
+related_article <-related_article %>%
+  mutate(number_termOne= str_count(keywords, pattern = "herpesvirus")) %>%
+  mutate(number_termTwo= str_count(keywords, pattern = "mortal.")) %>%
+  mutate(number_termThree= str_count(keywords, pattern = "oyster.")) %>% 
+  mutate(number_termFour= str_count(keywords, pattern = "mortal."))
+
+library(forcats)
+library(plotly)
+related_article <- related_article %>%
+  mutate(SumWords = related_article %>%
+           select(number_termOne, number_termTwo, number_termThree, number_termFour) %>%
+           rowSums())
+related_article <- related_article %>%
+  mutate(pmid=forcats::fct_reorder(pmid,SumWords))
+
+p <- related_article %>%
+  ggplot(aes(x=pmid, y=SumWords, fill=year, label=title))+
+  geom_col() +
+  coord_flip() +
+  ylab("keyword occurrence in the article")+
+  xlab("PMID")
+ggplotly(p)
+
+# Tendances de la recherche en rapport aux 10 abstracts clé rentrés
 library(reshape2)
-number_top_keyWords <- 10
+number_top_keyWords <- length(input_key_words)
 papers_by_year <- function(years, search_term){
     return(sapply(years, function(y) entrez_search(db="pubmed",term=search_term, mindate=y, maxdate=y, retmax=0)$count))
 }
 years <- 1970:2019
 total_papers <- papers_by_year(years, "")
-trend_top_dix <- tab_count_year %>% 
-    top_n(number_top_keyWords, wt = n) %>% # Mettre un curseur pour le top dans la shiny app ?
-    select(word) %>%
-    pull()
-  
-trend_data <- sapply(trend_top_dix, function(t) papers_by_year(years, t))
+trend_data <- sapply(input_key_words, function(t) papers_by_year(years, t))
 trend_props <- trend_data/total_papers
 trend_df <- melt(data.frame(years, trend_props), id.vars="years")
 p <- ggplot(trend_df, aes(years, value, colour=variable)) +
@@ -831,6 +872,9 @@ tab <- tab %>%
 
 complete_table_index <- left_join(tab, index_df)
 glimpse(complete_table_index)
+
+#saveRDS(complete_table_index, "/home/jean/Documents/BibliographeR/results/bazar_bibliographeR/complete_table_index.RDS")
+complete_table_index %>% glimpse()
 ```
 
 ### Ajout de ces fichiers d'index dans tab
@@ -1136,14 +1180,3 @@ theme(
 target_graph
 ggsave("target_graph.png")
 ```
-
-
-# Aide à la publication
-
-```{r}
-tab %>%
-  select(jabbrv,)
-
-
-```
-
