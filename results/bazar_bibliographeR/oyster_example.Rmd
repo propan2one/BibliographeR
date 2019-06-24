@@ -786,7 +786,7 @@ index_df %>%
   filter(Title %>%
            str_detect("^FISH .*?$")) %>%
   glimpse()
-#saveRDS(index_df, "raw/index_df.RDS")
+saveRDS(index_df, "/home/jean/Documents/BibliographeR/results/bazar_bibliographeR/index_df.RDS")
 
 #==== wip Jean ====
 # Détermination des paramètres pour faie un left_join
@@ -829,88 +829,8 @@ tab <- tab %>%
 tab <- tab %>% 
   mutate(journal= str_replace_all(journal, "&amp;", "and"))
 
-test_join <- left_join(tab, index_df)
-glimpse(test_join)
-
-test_join %>% 
-  # filter(!is.na(Type)) %>%
-  glimpse()
-
-test_join %>% 
-  filter(!is.na(SJR)) %>%
-  filter(journal=="fish")
-  glimpse()
-test_join %>%
-  filter(journal=="fish")
-
-test_join %>%
-  count(pmid, sort=TRUE) %>%
-  filter(n>1) %>%
-  select(pmid) %>%
-  pull() -> list_pmid_2
-
-test_join %>%
-  filter(pmid %in% list_pmid_2) %>%
-  select(journal, Issn.x, Issn.y)
-
-test_2_indices<- index_df %>%
-  filter(Issn %in% tab$Issn) %>%
-  filter(journal %in% tab$journal)
-test_2_indices <- test_2_indices %>% 
-  mutate(journal= str_replace_all(journal, "-", ""))
-test_2_indices <- test_2_indices %>% 
-  mutate(Issn=as.character(Issn))
-
-left_join(tab, test_2_indices, by=Issn) %>%
-  glimpse()
-
-tab %>%
-left_join(test_2_indices) %>%
-  glimpse()
-
-`1664-302X`
-
-index_df %>%
-  filter(Issn %in% "1664-302X")
-
-tab$Issn 
-
-#=======================
-tab %>%
-  glimpse()
-
-index_df %>% 
-  str()
-
-
-# Synchro les journaux car tilte c'est journal dans  index
-index_df <- index_df %>% 
-  mutate(journal = str_to_lower(title)) 
-index_df <- select (index_df,-c(title))
-tab <- tab %>% 
-  mutate(journal = str_to_lower(journal))
-
-# Synchronisation des Issn
-index_df <- index_df %>% mutate(year = as.character(year))
-
-tab <- tab %>% 
-  mutate(Issn = as.character(Issn)) 
-
-
-
-tab %>%
-  glimpse()
-
-  mutate(Issn= str_remove("-")))
-index_df %>% filter(Issn==str_remove("1664-302X","-"))
-index_df %>% select(Issn)
-
-
-# Le problème est probablement due aux maj lorsque j'ai tout mit à en str_lower, car je savais pas que le "titre" était pas la même chose dans les 2 tableaux
-
-
-
-
+complete_table_index <- left_join(tab, index_df)
+glimpse(complete_table_index)
 ```
 
 ### Ajout de ces fichiers d'index dans tab
@@ -1221,7 +1141,8 @@ ggsave("target_graph.png")
 # Aide à la publication
 
 ```{r}
-tab
+tab %>%
+  select(jabbrv,)
 
 
 ```
