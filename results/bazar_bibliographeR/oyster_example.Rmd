@@ -3,6 +3,8 @@ title: "Example Oyster"
 author: "Cécile Sauder"
 date: "20/06/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -610,6 +612,7 @@ visNetwork(nodes, edges, height = "500px") %>%
 #graph <- grapedgesh_from_data_frame(edges, directed = TRUE)
 
 #28316573 id de l'exmple
+conflict_prefer("map", "maps")
 
 visNetwork(nodes, edges) %>% 
   visLayout(randomSeed = 123) %>%
