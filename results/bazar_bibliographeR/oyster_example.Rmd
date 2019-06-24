@@ -764,18 +764,31 @@ tab$pmid %in% nodes$id %>% cumsum()
 La récupération des csv et bind_row_isation est faite dans joinSJR.R
 
 ```{r, eval = FALSE}
-OpenAccess <- readRDS("~/git/BibliographeR/raw/OpenAccess.RDS")
-SCIE <- readRDS("~/git/BibliographeR/raw/SCIE.RDS")
-scimago <- readRDS("~/git/BibliographeR/raw/scimago.RDS")
+OpenAccess <- readRDS("~/Documents//BibliographeR/raw/OpenAccess.RDS")
+SCIE <- readRDS("~/Documents/BibliographeR/raw/SCIE.RDS")
+scimago <- readRDS("~/Documents/BibliographeR/raw/scimago.RDS")
 
+# Correction du AND pour certain journaux comme FISH AND SHELLFISH IMMUNOLOGY
+OpenAccess <- OpenAccess %>% 
+  mutate(Title= str_replace_all(Title, "&", "AND"))
+SCIE <- SCIE %>% 
+  mutate(Title= str_replace_all(Title, "&", "AND"))
 
 index_df <- scimago %>%
   full_join(SCIE) %>%
   full_join(OpenAccess) %>%
   distinct()
+
+index_df %>%
+  glimpse()
+
+index_df %>% 
+  filter(Title %>%
+           str_detect("^FISH .*?$")) %>%
+  glimpse()
 #saveRDS(index_df, "raw/index_df.RDS")
 
-
+#==== wip Jean ====
 # Détermination des paramètres pour faie un left_join
 index_df %>%
   filter(Type=="journal") %>%
@@ -787,19 +800,20 @@ index_df <- rename(index_df, journal = Title) #For renaming dataframe column
 index_df <- index_df %>% mutate(year = as.character(year))
 index_df <- index_df %>% 
   mutate(journal = str_to_lower(journal))
-index_df <- index_df %>% 
-  mutate(Issn=str_replace_all(Issn, "-",""))
+# Split quand il y a 2 un Issn avec un forma bizarre
+index_df <- index_df %>%
+  separate(Issn, c("Issn","Issn_2"), sep = ", ", remove = FALSE )
 
-index_df %>%
-  select(Issn) %>%
-  str_detect(",[:blank:].*?$")
 
-index_df %>% 
-  mutate(Issn_2=str_split(Issn, ","))
+#index_df <- index_df %>% 
+#  mutate(Issn=str_replace_all(Issn, "-",""))
 
+#index_df %>%
+#  select(Issn) %>%
+#  str_detect(",[:blank:].*?$")
+
+# Faut récupé les Issn de correspondant à chaque articles
 #tab <- readRDS("tab_oyster_author_coord.RDS")
-
-# donc faut récupé les Issn de correspondant à chaque articles
 PMID_recherche <- tab %>% select(pmid)
 xml_recherche <- entrez_fetch(db="pubmed", PMID_recherche, rettype = "xml")
 xml_recherche_ToList <- xmlToList(xml_recherche)
@@ -815,7 +829,7 @@ tab <- tab %>%
 tab <- tab %>% 
   mutate(journal= str_replace_all(journal, "&amp;", "and"))
 
-test_join <- left_join(tab, index_df, by=c("journal", "year"))
+test_join <- left_join(tab, index_df)
 glimpse(test_join)
 
 test_join %>% 
@@ -823,7 +837,9 @@ test_join %>%
   glimpse()
 
 test_join %>% 
-  filter(is.na(Publisher))
+  filter(!is.na(SJR)) %>%
+  filter(journal=="fish")
+  glimpse()
 test_join %>%
   filter(journal=="fish")
 
