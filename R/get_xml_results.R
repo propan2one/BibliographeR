@@ -16,22 +16,40 @@ get_from_xml <- function(xml, what = "title"){
 }
 
 list_var <- c("title", "authors", "year", "journal", "volume", "issue", "pages", "key_words", "doi", "pmid", "abstract")
-list_var2 <- c("title", "year", "journal", "volume", "issue", "pages", "doi", "pmid", "abstract")
+list_var <- c("title", "authors", "year", "journal", "volume", "pages", "key_words", "doi", "pmid", "abstract")
 
-get_from_xml(xml, "authors")
+list_var2 <- c("title", "year", "journal", "volume", "issue", "pmid", "abstract")
+
+get_from_xml(xml, "doi") %>% str_replace_all("NULL", "NA")
 
 list_var %>%
   map(~get_from_xml(xml, .x))
 
 make_df <- function(query, xml, var){
-  tibble(id = get_ids(query), var = get_from_xml(xml, var)) 
+  tib <- tibble(id = get_ids(query), var = get_from_xml(xml, var)) %>% na_if("NULL") %>% unnest()
+  #tib$var <- str_replace_all(tib$var, "NULL", "NA") 
+  names(tib) <- c("id", var)
+  tib
 }
 
-test <- list_var %>%
-  map(~make_df(query, xml, .x))
+test <- make_df(query = query , xml = xml, var = "key_words")
 
-test$var
-names(test) <- c("id", list_var)
+test <- list_var %>%
+  map_dfc(~make_df(query, xml, .x))
+
+names(test) <- list_var
+
+
+test <- test %>%
+  unnest()
+
+
+
+
+
+test$title %>% flatten_chr()
+
+test$title
 
 test %>%
   map("key_words")
